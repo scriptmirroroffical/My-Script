@@ -193,7 +193,7 @@ local JumpBox = Instance.new("TextBox")
 JumpBox.Parent = Frame
 JumpBox.Position = UDim2.new(0.1, 0, 0.55, 0)
 JumpBox.Size = UDim2.new(0.8, 0, 0.15, 0)
-JumpBox.Text = "50"
+JumpBox.Text = "10"
 JumpBox.TextScaled = true
 
 local JumpButton = Instance.new("TextButton")
@@ -213,17 +213,32 @@ JumpToggle.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
 
 -- Biến lưu trạng thái
 local desiredSpeed = tonumber(SpeedBox.Text) or 16
-local desiredJump = tonumber(JumpBox.Text) or 50
+local desiredJump = tonumber(JumpBox.Text) or 10
 local speedEnabled = true
 local jumpEnabled = true
+local defaultSpeed = 16
+local defaultJump = 10
+
+-- Lấy giá trị mặc định từ Humanoid khi spawn
+player.CharacterAdded:Connect(function(char)
+    local hum = char:WaitForChild("Humanoid")
+    defaultSpeed = hum.WalkSpeed
+    defaultJump = hum.JumpPower
+end)
 
 -- Toggle Speed
 SpeedToggle.MouseButton1Click:Connect(function()
     speedEnabled = not speedEnabled
     SpeedToggle.Text = speedEnabled and "ON" or "OFF"
     SpeedToggle.BackgroundColor3 = speedEnabled and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        player.Character.Humanoid.WalkSpeed = desiredSpeed
+
+    local hum = player.Character and player.Character:FindFirstChild("Humanoid")
+    if hum then
+        if speedEnabled then
+            hum.WalkSpeed = desiredSpeed
+        else
+            hum.WalkSpeed = defaultSpeed
+        end
     end
 end)
 
@@ -232,8 +247,24 @@ JumpToggle.MouseButton1Click:Connect(function()
     jumpEnabled = not jumpEnabled
     JumpToggle.Text = jumpEnabled and "ON" or "OFF"
     JumpToggle.BackgroundColor3 = jumpEnabled and Color3.fromRGB(0,170,0) or Color3.fromRGB(170,0,0)
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        player.Character.Humanoid.JumpPower = desiredJump
+
+    local hum = player.Character and player.Character:FindFirstChild("Humanoid")
+    if hum then
+        if jumpEnabled then
+            -- Khi ON: áp dụng giá trị nhập
+            if hum.UseJumpPower then
+                hum.JumpPower = desiredJump
+            else
+                hum.JumpHeight = desiredJump
+            end
+        else
+            -- Khi OFF: trả về mặc định game ngay lập tức
+            if hum.UseJumpPower then
+                hum.JumpPower = defaultJump
+            else
+                hum.JumpHeight = defaultJump
+            end
+        end
     end
 end)
 
@@ -242,8 +273,9 @@ SpeedButton.MouseButton1Click:Connect(function()
     local val = tonumber(SpeedBox.Text)
     if val then
         desiredSpeed = val
-        if player.Character and player.Character:FindFirstChild("Humanoid") then
-            player.Character.Humanoid.WalkSpeed = desiredSpeed
+        local hum = player.Character and player.Character:FindFirstChild("Humanoid")
+        if hum and speedEnabled then
+            hum.WalkSpeed = desiredSpeed -- áp dụng ngay khi ON
         end
     else
         SpeedBox.Text = tostring(desiredSpeed)
@@ -255,15 +287,30 @@ JumpButton.MouseButton1Click:Connect(function()
     local val = tonumber(JumpBox.Text)
     if val then
         desiredJump = val
-        if player.Character and player.Character:FindFirstChild("Humanoid") then
-            player.Character.Humanoid.JumpPower = desiredJump
+        local hum = player.Character and player.Character:FindFirstChild("Humanoid")
+        if hum then
+            if jumpEnabled then
+                -- Nếu toggle đang ON thì áp dụng ngay
+                if hum.UseJumpPower then
+                    hum.JumpPower = desiredJump
+                else
+                    hum.JumpHeight = desiredJump
+                end
+            else
+                -- Nếu toggle OFF thì giữ mặc định
+                if hum.UseJumpPower then
+                    hum.JumpPower = defaultJump
+                else
+                    hum.JumpHeight = defaultJump
+                end
+            end
         end
     else
         JumpBox.Text = tostring(desiredJump)
     end
 end)
 
--- Luôn giữ giá trị khi bật toggle (kể cả khi respawn)
+-- Luôn giữ giá trị khi bật toggle
 RunService.RenderStepped:Connect(function()
     if player.Character and player.Character:FindFirstChild("Humanoid") then
         if speedEnabled then
@@ -273,11 +320,4 @@ RunService.RenderStepped:Connect(function()
             player.Character.Humanoid.JumpPower = desiredJump
         end
     end
-end)
-
--- Khi nhân vật spawn lại, áp dụng lại stats
-player.CharacterAdded:Connect(function(char)
-    local hum = char:WaitForChild("Humanoid")
-    if speedEnabled then hum.WalkSpeed = desiredSpeed end
-    if jumpEnabled then hum.JumpPower = desiredJump end
 end)
