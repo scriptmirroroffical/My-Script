@@ -77,9 +77,92 @@ MinimizeButton.TextColor3 = Color3.new(1, 1, 1)
 MinimizeButton.Parent = MainFrame
 Instance.new("UICorner", MinimizeButton).CornerRadius = UDim.new(0, 6)
 
+local TP_Sheriff = Instance.new("TextButton")
+TP_Sheriff.Size = UDim2.new(0.45, 0, 0.8, 0)
+TP_Sheriff.Position = UDim2.new(0.05, 0, 1.1, 0)
+TP_Sheriff.Text = "TP Sheriff"
+TP_Sheriff.Font = Enum.Font.GothamBold
+TP_Sheriff.TextColor3 = Color3.new(1, 1, 1)
+TP_Sheriff.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+TP_Sheriff.Parent = MainFrame
+Instance.new("UICorner", TP_Sheriff).CornerRadius = UDim.new(0, 6)
+
+local TP_Murderer = Instance.new("TextButton")
+TP_Murderer.Size = UDim2.new(0.45, 0, 0.8, 0)
+TP_Murderer.Position = UDim2.new(0.5, 0, 1.1, 0)
+TP_Murderer.Text = "TP Murderer"
+TP_Murderer.Font = Enum.Font.GothamBold
+TP_Murderer.TextColor3 = Color3.new(1, 1, 1)
+TP_Murderer.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+TP_Murderer.Parent = MainFrame
+Instance.new("UICorner", TP_Murderer).CornerRadius = UDim.new(0, 6)
+
+----------------------------------------------------------------
+-- HIỂN THỊ TÊN NGƯỜI CHƠI
+----------------------------------------------------------------
+
+local function createESP(player, color)
+    local char = player.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        local root = char.HumanoidRootPart
+
+        -- Box ESP
+        local box = root:FindFirstChild("MyESP") or Instance.new("BoxHandleAdornment")
+        box.Name = "MyESP"
+        box.Adornee = root
+        box.AlwaysOnTop = true
+        box.ZIndex = 10
+        box.Size = Vector3.new(3.5, 5, 3.5)
+        box.Transparency = 0.5
+        box.Color3 = color
+        box.Parent = root
+
+        -- Name ESP
+        local billboard = root:FindFirstChild("NameESP")
+        if not billboard then
+            billboard = Instance.new("BillboardGui")
+            billboard.Name = "NameESP"
+            billboard.Adornee = root
+            billboard.Size = UDim2.new(0, 200, 0, 50)
+            billboard.StudsOffset = Vector3.new(0, 4, 0) -- cao hơn đầu
+            billboard.AlwaysOnTop = true
+            billboard.Parent = root
+
+            local nameLabel = Instance.new("TextLabel")
+            nameLabel.Name = "NameLabel"
+            nameLabel.Size = UDim2.new(1, 0, 1, 0)
+            nameLabel.BackgroundTransparency = 1
+            nameLabel.Text = player.Name
+            nameLabel.TextColor3 = color
+            nameLabel.Font = Enum.Font.GothamBold
+            nameLabel.TextScaled = true
+            nameLabel.Parent = billboard
+        else
+            local nameLabel = billboard:FindFirstChild("NameLabel")
+            if nameLabel then
+                nameLabel.TextColor3 = color
+                nameLabel.Text = player.Name -- đảm bảo cập nhật tên
+            end
+        end
+    end
+end
+
+local function removeESP()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local root = player.Character.HumanoidRootPart
+            local oldBox = root:FindFirstChild("MyESP")
+            local oldName = root:FindFirstChild("NameESP")
+            if oldBox then oldBox:Destroy() end
+            if oldName then oldName:Destroy() end
+        end
+    end
+end
+
 ----------------------------------------------------------------
 -- GIAO DIỆN DẤU CỘNG (MiniFrame)
 ----------------------------------------------------------------
+
 local MiniFrame = Instance.new("Frame")
 MiniFrame.Size = UDim2.new(0, 40, 0, 40)
 MiniFrame.Position = MainFrame.Position
@@ -181,4 +264,29 @@ RunService.RenderStepped:Connect(function()
 			end
 		end
 	end
+end)
+
+----------------------------------------------------------------
+-- LOGIC TELEPORT
+----------------------------------------------------------------
+
+local function teleportToRole(roleColor)
+	for _, player in pairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+			local root = player.Character.HumanoidRootPart
+			local espBox = root:FindFirstChild("MyESP")
+			if espBox and espBox.Color3 == roleColor then
+				LocalPlayer.Character.HumanoidRootPart.CFrame = root.CFrame + Vector3.new(0, 3, 0)
+				break
+			end
+		end
+	end
+end
+
+TP_Sheriff.MouseButton1Click:Connect(function()
+	teleportToRole(Color3.fromRGB(135, 206, 250)) -- Sheriff
+end)
+
+TP_Murderer.MouseButton1Click:Connect(function()
+	teleportToRole(Color3.fromRGB(255, 0, 0)) -- Murderer
 end)
