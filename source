@@ -27,7 +27,7 @@ local scripts = {
     {
         Name = "StatsController.lua",
         Url = "https://raw.githubusercontent.com/scriptmirroroffical/My-Script/main/StatsController.lua",
-        Description = "Controls player stats (speed, jump) in games without anti-cheat."
+        Description = "Controls player stats (speed, jump, health) in games without anti-cheat."
     },
     {
         Name = "sixthsenseformur.lua",
