@@ -1,0 +1,66 @@
+-- Load Rayfield UI from Sirius
+local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+
+-- Create the main window
+local Window = Rayfield:CreateWindow({
+    Name = "Lua Installer",
+    LoadingTitle = "Loading scripts...",
+    LoadingSubtitle = "by Scriptmirror",
+    Theme = "Default",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "MyScriptConfigs",
+        FileName = "InstallerConfig"
+    }
+})
+
+-- Create Tab
+local Tab = Window:CreateTab("Scripts", 4483362458)
+
+-- List of scripts
+local scripts = {
+    {
+        Name = "Rc7RemoveLogIn.lua",
+        Url = "https://raw.githubusercontent.com/scriptmirroroffical/My-Script/main/Rc7RemoveLogIn.lua",
+        Description = "Removes login requirement in Rc7 executor."
+    },
+    {
+        Name = "StatsController.lua",
+        Url = "https://raw.githubusercontent.com/scriptmirroroffical/My-Script/main/StatsController.lua",
+        Description = "Controls player stats (speed, jump) in games without anti-cheat."
+    },
+    {
+        Name = "sixthsenseformur.lua",
+        Url = "https://raw.githubusercontent.com/scriptmirroroffical/My-Script/main/sixthsenseformur.lua",
+        Description = "Works in The Dank Murderer X, shows who is sheriff, murderer, and innocent."
+    }
+}
+
+-- Create buttons for each script
+for _, script in ipairs(scripts) do
+    -- Description button
+    Tab:CreateButton({
+        Name = "Description: " .. script.Name,
+        Callback = function()
+            Rayfield:Notify({
+                Title = "Script Info",
+                Content = script.Description,
+                Duration = 5
+            })
+        end
+    })
+
+    -- Execute button
+    Tab:CreateButton({
+        Name = "Execute: " .. script.Name,
+        Callback = function()
+            local content = game:HttpGet(script.Url)
+            Rayfield:Notify({
+                Title = "Script Executed",
+                Content = "Running: " .. script.Name,
+                Duration = 3
+            })
+            loadstring(content)()
+        end
+    })
+end
