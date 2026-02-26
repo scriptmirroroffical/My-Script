@@ -22,7 +22,7 @@ local scripts = {
     {
         Name = "Rc7RemoveLogIn.lua",
         Url = "https://raw.githubusercontent.com/scriptmirroroffical/My-Script/main/Rc7RemoveLogIn.lua",
-        Description = "Rc7 executor had Removed login requirement."
+        Description = "Rc7 executor had removed login requirement."
     },
     {
         Name = "StatsController.lua",
@@ -32,12 +32,13 @@ local scripts = {
     {
         Name = "sixthsenseformur.lua",
         Url = "https://raw.githubusercontent.com/scriptmirroroffical/My-Script/main/sixthsenseformur.lua",
-        Description = "Works in game about Sheriff and Murderer, shows who is sheriff, murderer, and innocent ,but it can error in some unknown or anti-cheat game."
+        Description = "Works in games about Sheriff and Murderer, shows who is sheriff, murderer, and innocent. May error in unknown or anti-cheat games."
     },
     {
-        Name = "DaMurXFull.lua"
-        Url = "https://raw.githubusercontent.com/scriptmirroroffical/My-Script/main/DaMurXFull.lua"
-        Description = "Work only for The Dank Murderer X, shows all job in it"
+        Name = "DaMurXFull.lua",
+        Url = "https://raw.githubusercontent.com/scriptmirroroffical/My-Script/main/DaMurXFull.lua",
+        Description = "Works only for The Dank Murderer X, shows all roles/jobs in it."
+    }
 }
 
 -- Create buttons for each script
