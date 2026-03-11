@@ -1,150 +1,152 @@
--- Nexus Ultra: Remote Scanner & Tuner
+-- Nexus Advanced Remote Tuner
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+local LogService = game:GetService("LogService")
 local player = Players.LocalPlayer
 
-local selectedRemote = nil -- Lưu trữ Remote đang được chọn
+local selectedRemote = nil
 
 -- ==========================================
--- 1. UI SETUP (Giao diện tối giản, tập trung)
+-- 1. ADVANCED UI SETUP
 -- ==========================================
 local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-screenGui.Name = "NexusRemoteTuner"
+screenGui.Name = "NexusAdvanced"
 screenGui.ResetOnSpawn = false
 
 local main = Instance.new("Frame", screenGui)
-main.Size = UDim2.new(0, 550, 0, 400)
-main.Position = UDim2.new(0.5, -275, 0.5, -200)
-main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+main.Size = UDim2.new(0, 600, 0, 450)
+main.Position = UDim2.new(0.5, -300, 0.5, -225)
+main.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 main.Active = true
 main.Draggable = true
-Instance.new("UICorner", main).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", main)
 
--- Tiêu đề
-local title = Instance.new("TextLabel", main)
-title.Size = UDim2.new(1, 0, 0, 30)
-title.Text = "📡 NEXUS REMOTE TUNER"
-title.TextColor3 = Color3.fromRGB(0, 255, 150)
-title.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+-- Tab Bar
+local header = Instance.new("Frame", main)
+header.Size = UDim2.new(1, 0, 0, 40)
+header.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+local title = Instance.new("TextLabel", header)
+title.Size = UDim2.new(1, -20, 1, 0)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.Text = "NEXUS ADVANCED TUNER v2.0"
+title.TextColor3 = Color3.fromRGB(0, 255, 170)
 title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
 
--- Cột trái: Danh sách Remote (Scanner)
-local scrollList = Instance.new("ScrollingFrame", main)
-scrollList.Size = UDim2.new(0.5, -15, 1, -80)
-scrollList.Position = UDim2.new(0, 10, 0, 70)
-scrollList.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-scrollList.ScrollBarThickness = 4
-local listLayout = Instance.new("UIListLayout", scrollList)
-listLayout.Padding = UDim.new(0, 2)
+-- Left Side: Remote Browser
+local listScroll = Instance.new("ScrollingFrame", main)
+listScroll.Size = UDim2.new(0.45, 0, 1, -100)
+listScroll.Position = UDim2.new(0, 10, 0, 90)
+listScroll.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+listScroll.CanvasSize = UDim2.new(0,0,10,0)
+local listLayout = Instance.new("UIListLayout", listScroll)
 
-local scanBtn = Instance.new("TextButton", main)
-scanBtn.Size = UDim2.new(0.5, -15, 0, 30)
-scanBtn.Position = UDim2.new(0, 10, 0, 35)
-scanBtn.Text = "🔍 SCAN REMOTES"
-scanBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
-scanBtn.TextColor3 = Color3.new(1, 1, 1)
+local searchBox = Instance.new("TextBox", main)
+searchBox.Size = UDim2.new(0.45, 0, 0, 30)
+searchBox.Position = UDim2.new(0, 10, 0, 50)
+searchBox.PlaceholderText = "Search Remotes..."
+searchBox.Text = ""
+searchBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+searchBox.TextColor3 = Color3.new(1, 1, 1)
 
--- Cột phải: Bảng điều khiển (Tuner)
-local tunerFrame = Instance.new("Frame", main)
-tunerFrame.Size = UDim2.new(0.5, -15, 1, -40)
-tunerFrame.Position = UDim2.new(0.5, 5, 0, 35)
-tunerFrame.BackgroundTransparency = 1
+-- Right Side: Execution Console
+local consoleFrame = Instance.new("Frame", main)
+consoleFrame.Size = UDim2.new(0.5, 0, 1, -50)
+consoleFrame.Position = UDim2.new(0.48, 0, 0, 50)
+consoleFrame.BackgroundTransparency = 1
 
-local targetLabel = Instance.new("TextLabel", tunerFrame)
-targetLabel.Size = UDim2.new(1, 0, 0, 40)
-targetLabel.Text = "Not Selected Remote"
-targetLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
-targetLabel.TextWrapped = true
-targetLabel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+local targetDisplay = Instance.new("TextLabel", consoleFrame)
+targetDisplay.Size = UDim2.new(1, 0, 0, 30)
+targetDisplay.Text = "No Remote Selected"
+targetDisplay.TextColor3 = Color3.fromRGB(255, 165, 0)
+targetDisplay.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 
-local argInput = Instance.new("TextBox", tunerFrame)
-argInput.Size = UDim2.new(1, 0, 0, 150)
-argInput.Position = UDim2.new(0, 0, 0, 50)
-argInput.MultiLine = true
-argInput.Text = "WELCOME"
-argInput.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-argInput.TextColor3 = Color3.new(1, 1, 1)
-argInput.Font = Enum.Font.Code
-argInput.ClearTextOnFocus = false
-argInput.TextXAlignment = 0
-argInput.TextYAlignment = 0
+local argLabel = Instance.new("TextLabel", consoleFrame)
+argLabel.Size = UDim2.new(1, 0, 0, 20)
+argLabel.Position = UDim2.new(0, 0, 0, 40)
+argLabel.Text = "Arguments (Lua Format):"
+argLabel.BackgroundTransparency = 1
+argLabel.TextColor3 = Color3.new(0.7, 0.7, 0.7)
+argLabel.TextXAlignment = 0
 
-local fireBtn = Instance.new("TextButton", tunerFrame)
+local argBox = Instance.new("TextBox", consoleFrame)
+argBox.Size = UDim2.new(1, 0, 0, 200)
+argBox.Position = UDim2.new(0, 0, 0, 65)
+argBox.MultiLine = true
+argBox.Text = "100, \"Sword\", {Level = 50}, math.huge"
+argBox.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+argBox.TextColor3 = Color3.fromRGB(0, 255, 0)
+argBox.Font = Enum.Font.Code
+argBox.TextXAlignment = 0
+argBox.TextYAlignment = 0
+argBox.ClearTextOnFocus = false
+
+local fireBtn = Instance.new("TextButton", consoleFrame)
 fireBtn.Size = UDim2.new(1, 0, 0, 50)
-fireBtn.Position = UDim2.new(0, 0, 0, 210)
-fireBtn.Text = "🚀 FIRE REMOTE"
-fireBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+fireBtn.Position = UDim2.new(0, 0, 0, 275)
+fireBtn.Text = "EXECUTE ON SERVER"
+fireBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
 fireBtn.TextColor3 = Color3.new(1, 1, 1)
 fireBtn.Font = Enum.Font.GothamBold
 
 -- ==========================================
--- 2. LOGIC XỬ LÝ
+-- 2. LOGIC & PARSING
 -- ==========================================
 
--- Hàm phân tích tham số từ TextBox thành Lua Arguments
-local function parseArgs(str)
-    local func = loadstring("return {" .. str .. "}")
-    if func then
+-- Secret Sauce: Converts your text box into real Lua types
+local function getArgs(rawText)
+    local success, func = pcall(function()
+        return loadstring("return {" .. rawText .. "}")
+    end)
+    
+    if success and type(func) == "function" then
         return unpack(func())
     end
     return nil
 end
 
--- Hàm thực thi Remote đã chọn
 fireBtn.MouseButton1Click:Connect(function()
-    if not selectedRemote then 
-        targetLabel.Text = "LỖI: Hãy chọn 1 Remote trước!"
-        return 
-    end
+    if not selectedRemote then return end
+    
+    local args = {getArgs(argBox.Text)}
     
     local success, err = pcall(function()
-        local args = {parseArgs(argInput.Text)}
         if selectedRemote:IsA("RemoteEvent") then
             selectedRemote:FireServer(unpack(args))
         elseif selectedRemote:IsA("RemoteFunction") then
-            local result = selectedRemote:InvokeServer(unpack(args))
-            print("Kết quả trả về: ", result)
+            local res = selectedRemote:InvokeServer(unpack(args))
+            print("Server returned:", res)
         end
     end)
     
     if success then
-        fireBtn.Text = "✅ SENDED!"
-        task.wait(1)
-        fireBtn.Text = "🚀 FIRE REMOTE"
+        fireBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+        task.wait(0.5)
+        fireBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
     else
-        warn("Lỗi khi thực thi: " .. err)
-        fireBtn.Text = "❌ CODE ERROR!"
-        task.wait(1)
-        fireBtn.Text = "🚀 FIRE REMOTE"
+        warn("Execution Failed: " .. tostring(err))
     end
 end)
 
--- Hàm Quét và Hiển thị
-scanBtn.MouseButton1Click:Connect(function()
-    -- Xóa danh sách cũ
-    for _, v in pairs(scrollList:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+local function updateList()
+    for _, v in pairs(listScroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
     
     for _, obj in pairs(game:GetDescendants()) do
-        if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-            local btn = Instance.new("TextButton", scrollList)
-            btn.Size = UDim2.new(1, 0, 0, 30)
-            btn.Text = "[" .. obj.ClassName:sub(1,6) .. "] " .. obj.Name
-            btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            btn.TextColor3 = Color3.fromRGB(200, 200, 200)
-            btn.BorderSizePixel = 0
+        if (obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction")) and obj.Name:lower():find(searchBox.Text:lower()) then
+            local b = Instance.new("TextButton", listScroll)
+            b.Size = UDim2.new(1, 0, 0, 25)
+            b.Text = obj.Name
+            b.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+            b.TextColor3 = Color3.new(0.8, 0.8, 0.8)
+            b.Font = Enum.Font.Code
             
-            -- Khi click vào một Remote trong danh sách
-            btn.MouseButton1Click:Connect(function()
+            b.MouseButton1Click:Connect(function()
                 selectedRemote = obj
-                targetLabel.Text = "TARGET: " .. obj.Name
-                print("Đã chọn: " .. obj:GetFullName())
-                
-                -- Hiệu ứng chọn
-                for _, other in pairs(scrollList:GetChildren()) do 
-                    if other:IsA("TextButton") then other.BackgroundColor3 = Color3.fromRGB(40, 40, 40) end
-                end
-                btn.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
+                targetDisplay.Text = "TARGET: " .. obj.Name
+                print("Selected Path: " .. obj:GetFullName())
             end)
         end
     end
-end)
+end
+
+searchBox:GetPropertyChangedSignal("Text"):Connect(updateList)
+updateList()
