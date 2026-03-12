@@ -1,3 +1,8 @@
+--[[ 
+    STATS CONTROLLER: ULTIMATE FULL EDITION V7.1 (FIXED NOCLIP)
+    Features: Independent Fly Speed, Health Bypass, JumpPower, NoClip (X), UI Controls
+]]
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -16,7 +21,7 @@ local stats = {
     flySpeed = 50,
     autoMaintain = true,
     flying = false,
-    noClip = false -- Thêm biến NoClip
+    noClip = false
 }
 
 local flyForce, flyGyro
@@ -27,16 +32,16 @@ player.CharacterAdded:Connect(function(newChar)
     hrp = newChar:WaitForChild("HumanoidRootPart")
     humanoid = newChar:WaitForChild("Humanoid")
     stats.flying = false
-    -- Lưu ý: NoClip sẽ tự nhận diện Character mới qua biến character
+    stats.noClip = false -- Reset trạng thái NoClip khi chết để tránh lỗi vật lý
 end)
 
 -- KHỞI TẠO GUI
 local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-screenGui.Name = "StatsController_V7"
+screenGui.Name = "StatsController_V7_Fixed"
 screenGui.ResetOnSpawn = false
 
 local mainFrame = Instance.new("Frame", screenGui)
-mainFrame.Size = UDim2.new(0, 320, 0, 460) -- Tăng chiều cao lên 460
+mainFrame.Size = UDim2.new(0, 320, 0, 460)
 mainFrame.Position = UDim2.new(0.5, -160, 0.5, -230)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 mainFrame.ClipsDescendants = true
@@ -45,7 +50,7 @@ Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
 -- Title
 local title = Instance.new("TextLabel", mainFrame)
 title.Size = UDim2.new(1, 0, 0, 40)
-title.Text = "⚡ STATS CONTROLLER V7"
+title.Text = "⚡ STATS CONTROLLER V7.1"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 title.Font = Enum.Font.GothamBold
@@ -67,7 +72,7 @@ miniBtn.MouseButton1Click:Connect(function()
     miniBtn.Text = minimized and "+" or "-"
 end)
 
--- Hàm tạo Input (Giữ nguyên logic cũ)
+-- Hàm tạo Input
 local function createInput(name, default, posY)
     local frame = Instance.new("Frame", mainFrame)
     frame.Size = UDim2.new(1, -20, 0, 45)
@@ -96,7 +101,6 @@ local function createInput(name, default, posY)
         local keyMap = {["Walk Speed"]="speed", ["Jump Power"]="jump", ["Health (Bypass)"]="health", ["Fly Speed"]="flySpeed"}
         if val then stats[keyMap[name]] = val else box.Text = tostring(stats[keyMap[name]]) end
     end)
-    return box
 end
 
 createInput("Walk Speed", stats.speed, 50)
@@ -104,7 +108,7 @@ createInput("Jump Power", stats.jump, 100)
 createInput("Health (Bypass)", stats.health, 150)
 createInput("Fly Speed", stats.flySpeed, 200)
 
--- NÚT NOCLIP (MỚI)
+-- NÚT NOCLIP (ĐÃ FIX)
 local noclipBtn = Instance.new("TextButton", mainFrame)
 noclipBtn.Size = UDim2.new(1, -20, 0, 40)
 noclipBtn.Position = UDim2.new(0, 10, 0, 260)
@@ -118,6 +122,18 @@ local function toggleNoClip()
     stats.noClip = not stats.noClip
     noclipBtn.Text = "NOCLIP: " .. (stats.noClip and "ON (X)" or "OFF (X)")
     noclipBtn.BackgroundColor3 = stats.noClip and Color3.fromRGB(200, 50, 50) or Color3.fromRGB(40, 40, 40)
+    
+    -- Fix: Bật lại va chạm ngay lập tức khi tắt
+    if not stats.noClip and character then
+        for _, part in ipairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                -- Bật lại va chạm cho các bộ phận cơ bản để không bị xuyên đất
+                if part.Name == "HumanoidRootPart" or part.Name:find("Torso") or part.Name == "Head" then
+                    part.CanCollide = true
+                end
+            end
+        end
+    end
 end
 noclipBtn.MouseButton1Click:Connect(toggleNoClip)
 
@@ -128,7 +144,6 @@ flyBtn.Position = UDim2.new(0, 10, 0, 310)
 flyBtn.Text = "FLY: OFF"
 flyBtn.BackgroundColor3 = Color3.fromRGB(80, 20, 120)
 flyBtn.TextColor3 = Color3.new(1, 1, 1)
-flyBtn.Font = Enum.Font.GothamBold
 Instance.new("UICorner", flyBtn).CornerRadius = UDim.new(0, 8)
 
 flyBtn.MouseButton1Click:Connect(function()
@@ -142,7 +157,6 @@ flyBtn.MouseButton1Click:Connect(function()
         flyForce.Position = hrp.Position
         flyGyro = Instance.new("BodyGyro", hrp)
         flyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-        flyGyro.P = 3000
     else
         if flyForce then flyForce:Destroy() end
         if flyGyro then flyGyro:Destroy() end
@@ -157,7 +171,6 @@ autoBtn.Position = UDim2.new(0, 10, 0, 360)
 autoBtn.Text = "Auto-Maintain: ON"
 autoBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
 autoBtn.TextColor3 = Color3.new(1, 1, 1)
-autoBtn.Font = Enum.Font.GothamBold
 Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 8)
 
 autoBtn.MouseButton1Click:Connect(function()
@@ -166,7 +179,7 @@ autoBtn.MouseButton1Click:Connect(function()
     autoBtn.BackgroundColor3 = stats.autoMaintain and Color3.fromRGB(0, 120, 215) or Color3.fromRGB(100, 100, 100)
 end)
 
--- LOGIC KÉO THẢ (DRAG)
+-- DRAG LOGIC
 local dragging, dragStart, startPos
 mainFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -184,12 +197,10 @@ UserInputService.InputEnded:Connect(function(input) if input.UserInputType == En
 -- PHÍM TẮT
 UserInputService.InputBegan:Connect(function(input, gpe)
     if gpe then return end
-    if input.KeyCode == Enum.KeyCode.X then
-        toggleNoClip()
-    end
+    if input.KeyCode == Enum.KeyCode.X then toggleNoClip() end
 end)
 
--- VÒNG LẶP HỆ THỐNG
+-- LOOP VẬT LÝ (NOCLIP)
 RunService.Stepped:Connect(function()
     if stats.noClip and character then
         for _, part in ipairs(character:GetDescendants()) do
@@ -200,6 +211,7 @@ RunService.Stepped:Connect(function()
     end
 end)
 
+-- LOOP LOGIC
 RunService.Heartbeat:Connect(function()
     if not character or not hrp or not humanoid then return end
 
@@ -228,5 +240,4 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
-print("⚡ Stats Controller V7 Loaded! Press X to NoClip.")
-
+print("⚡ Stats Controller V7.1 Loaded! NoClip is now toggleable.")
