@@ -98,7 +98,7 @@ local function createInput(name, default, posY)
 
     box.FocusLost:Connect(function()
         local val = tonumber(box.Text)
-        local keyMap = {["Walk Speed"]="speed", ["Jump Power"]="jump", ["Health (Bypass)"]="health", ["Fly Speed"]="flySpeed"}
+        local keyMap = {["Walk Speed"]="speed", ["Jump Power"]="jump", ["Health (Bypass BETA-v1)"]="health", ["Fly Speed"]="flySpeed"}
         if val then stats[keyMap[name]] = val else box.Text = tostring(stats[keyMap[name]]) end
     end)
 end
@@ -241,3 +241,4 @@ RunService.Heartbeat:Connect(function()
 end)
 
 print("⚡ Stats Controller V7.1 Loaded! NoClip is now toggleable.")
+
