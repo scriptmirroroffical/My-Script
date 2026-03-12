@@ -1,88 +1,76 @@
---[[ 
-    STATS CONTROLLER: ULTIMATE FULL EDITION V6
-    Features: Independent Fly Speed, Health Bypass, JumpPower, Labeled UI, Minimize, UICorner
-]]
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService") -- Thêm TweenService cho Minimize
+local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 local humanoid = character:WaitForChild("Humanoid")
 
--- Cấu hình mặc định
+-- CẤU HÌNH MẶC ĐỊNH
 local stats = {
     speed = 16,
     jump = 50,
     health = 100,
     flySpeed = 50,
     autoMaintain = true,
-    flying = false
+    flying = false,
+    noClip = false -- Thêm biến NoClip
 }
 
 local flyForce, flyGyro
 
--- Reset tham chiếu khi nhân vật hồi sinh
+-- CẬP NHẬT NHÂN VẬT KHI HỒI SINH
 player.CharacterAdded:Connect(function(newChar)
     character = newChar
     hrp = newChar:WaitForChild("HumanoidRootPart")
     humanoid = newChar:WaitForChild("Humanoid")
-    if stats.flying then stats.flying = false end
+    stats.flying = false
+    -- Lưu ý: NoClip sẽ tự nhận diện Character mới qua biến character
 end)
 
 -- KHỞI TẠO GUI
 local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-screenGui.Name = "StatsController_V6"
+screenGui.Name = "StatsController_V7"
 screenGui.ResetOnSpawn = false
 
--- Khung chính
 local mainFrame = Instance.new("Frame", screenGui)
-mainFrame.Size = UDim2.new(0, 320, 0, 420) -- Chỉnh lại chiều cao cho vừa vặn
-mainFrame.Position = UDim2.new(0.5, -160, 0.5, -210)
+mainFrame.Size = UDim2.new(0, 320, 0, 460) -- Tăng chiều cao lên 460
+mainFrame.Position = UDim2.new(0.5, -160, 0.5, -230)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-mainFrame.ClipsDescendants = true -- Bắt buộc để khi thu nhỏ không bị lòi chữ ra ngoài
-Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12) -- Bo góc MainFrame
+mainFrame.ClipsDescendants = true
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
 
 -- Title
 local title = Instance.new("TextLabel", mainFrame)
 title.Size = UDim2.new(1, 0, 0, 40)
-title.Text = "⚡ STATS CONTROLLER V6"
+title.Text = "⚡ STATS CONTROLLER V7 + NOCLIP"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 title.Font = Enum.Font.GothamBold
-title.TextSize = 16
+title.TextSize = 14
 
--- NÚT MINIMIZE (THU NHỎ)
+-- NÚT THU NHỎ
 local miniBtn = Instance.new("TextButton", mainFrame)
 miniBtn.Size = UDim2.new(0, 30, 0, 30)
 miniBtn.Position = UDim2.new(1, -35, 0, 5)
 miniBtn.Text = "-"
 miniBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 miniBtn.TextColor3 = Color3.new(1, 1, 1)
-miniBtn.Font = Enum.Font.GothamBold
-miniBtn.TextSize = 18
-Instance.new("UICorner", miniBtn).CornerRadius = UDim.new(0, 8) -- Bo góc nút thu nhỏ
+Instance.new("UICorner", miniBtn).CornerRadius = UDim.new(0, 8)
 
 local minimized = false
 miniBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
-    -- Dùng Tween để thu nhỏ mượt mà
-    if minimized then
-        mainFrame:TweenSize(UDim2.new(0, 320, 0, 40), "Out", "Quad", 0.3, true)
-        miniBtn.Text = "+"
-    else
-        mainFrame:TweenSize(UDim2.new(0, 320, 0, 420), "Out", "Quad", 0.3, true)
-        miniBtn.Text = "-"
-    end
+    mainFrame:TweenSize(minimized and UDim2.new(0, 320, 0, 40) or UDim2.new(0, 320, 0, 460), "Out", "Quad", 0.3, true)
+    miniBtn.Text = minimized and "+" or "-"
 end)
 
--- Hàm tạo các dòng nhập liệu có Label rõ ràng
+-- Hàm tạo Input (Giữ nguyên logic cũ)
 local function createInput(name, default, posY)
     local frame = Instance.new("Frame", mainFrame)
-    frame.Size = UDim2.new(1, -20, 0, 50)
+    frame.Size = UDim2.new(1, -20, 0, 45)
     frame.Position = UDim2.new(0, 10, 0, posY)
     frame.BackgroundTransparency = 1
 
@@ -92,7 +80,7 @@ local function createInput(name, default, posY)
     label.TextColor3 = Color3.fromRGB(200, 200, 200)
     label.BackgroundTransparency = 1
     label.Font = Enum.Font.GothamSemibold
-    label.TextSize = 14
+    label.TextSize = 13
     label.TextXAlignment = Enum.TextXAlignment.Left
 
     local box = Instance.new("TextBox", frame)
@@ -101,31 +89,37 @@ local function createInput(name, default, posY)
     box.Text = tostring(default)
     box.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
     box.TextColor3 = Color3.new(1, 1, 1)
-    box.Font = Enum.Font.Code
-    box.TextSize = 14
-    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 6) -- Bo góc TextBox
+    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 6)
 
     box.FocusLost:Connect(function()
         local val = tonumber(box.Text)
-        local statKey = name == "Walk Speed" and "speed" 
-            or name == "Jump Power" and "jump" 
-            or name == "Health (Bypass)" and "health" 
-            or name == "Fly Speed" and "flySpeed"
-            
-        if val then 
-            stats[statKey] = val 
-        else 
-            box.Text = tostring(stats[statKey])
-        end
+        local keyMap = {["Walk Speed"]="speed", ["Jump Power"]="jump", ["Health (Bypass)"]="health", ["Fly Speed"]="flySpeed"}
+        if val then stats[keyMap[name]] = val else box.Text = tostring(stats[keyMap[name]]) end
     end)
     return box
 end
 
--- Tạo 4 ô thông số
-local speedInput = createInput("Walk Speed", stats.speed, 50)
-local jumpInput = createInput("Jump Power", stats.jump, 110)
-local healthInput = createInput("Health (Bypass)", stats.health, 170)
-local flySpeedInput = createInput("Fly Speed", stats.flySpeed, 230)
+createInput("Walk Speed", stats.speed, 50)
+createInput("Jump Power", stats.jump, 100)
+createInput("Health (Bypass)", stats.health, 150)
+createInput("Fly Speed", stats.flySpeed, 200)
+
+-- NÚT NOCLIP (MỚI)
+local noclipBtn = Instance.new("TextButton", mainFrame)
+noclipBtn.Size = UDim2.new(1, -20, 0, 40)
+noclipBtn.Position = UDim2.new(0, 10, 0, 260)
+noclipBtn.Text = "NOCLIP: OFF (X)"
+noclipBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+noclipBtn.TextColor3 = Color3.new(1, 1, 1)
+noclipBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", noclipBtn).CornerRadius = UDim.new(0, 8)
+
+local function toggleNoClip()
+    stats.noClip = not stats.noClip
+    noclipBtn.Text = "NOCLIP: " .. (stats.noClip and "ON (X)" or "OFF (X)")
+    noclipBtn.BackgroundColor3 = stats.noClip and Color3.fromRGB(200, 50, 50) or Color3.fromRGB(40, 40, 40)
+end
+noclipBtn.MouseButton1Click:Connect(toggleNoClip)
 
 -- NÚT FLY
 local flyBtn = Instance.new("TextButton", mainFrame)
@@ -135,7 +129,7 @@ flyBtn.Text = "FLY: OFF"
 flyBtn.BackgroundColor3 = Color3.fromRGB(80, 20, 120)
 flyBtn.TextColor3 = Color3.new(1, 1, 1)
 flyBtn.Font = Enum.Font.GothamBold
-Instance.new("UICorner", flyBtn).CornerRadius = UDim.new(0, 8) -- Bo góc nút Fly
+Instance.new("UICorner", flyBtn).CornerRadius = UDim.new(0, 8)
 
 flyBtn.MouseButton1Click:Connect(function()
     stats.flying = not stats.flying
@@ -146,7 +140,6 @@ flyBtn.MouseButton1Click:Connect(function()
         flyForce = Instance.new("BodyPosition", hrp)
         flyForce.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
         flyForce.Position = hrp.Position
-
         flyGyro = Instance.new("BodyGyro", hrp)
         flyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
         flyGyro.P = 3000
@@ -165,7 +158,7 @@ autoBtn.Text = "Auto-Maintain: ON"
 autoBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 215)
 autoBtn.TextColor3 = Color3.new(1, 1, 1)
 autoBtn.Font = Enum.Font.GothamBold
-Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 8) -- Bo góc nút Auto-Maintain
+Instance.new("UICorner", autoBtn).CornerRadius = UDim.new(0, 8)
 
 autoBtn.MouseButton1Click:Connect(function()
     stats.autoMaintain = not stats.autoMaintain
@@ -173,7 +166,7 @@ autoBtn.MouseButton1Click:Connect(function()
     autoBtn.BackgroundColor3 = stats.autoMaintain and Color3.fromRGB(0, 120, 215) or Color3.fromRGB(100, 100, 100)
 end)
 
--- HỆ THỐNG KÉO THẢ (DRAG)
+-- LOGIC KÉO THẢ (DRAG)
 local dragging, dragStart, startPos
 mainFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -188,44 +181,51 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
 
--- VÒNG LẶP CHÍNH CẬP NHẬT LIÊN TỤC
+-- PHÍM TẮT
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.X then
+        toggleNoClip()
+    end
+end)
+
+-- VÒNG LẶP HỆ THỐNG
+RunService.Stepped:Connect(function()
+    if stats.noClip and character then
+        for _, part in ipairs(character:GetDescendants()) do
+            if part:IsA("BasePart") and part.CanCollide then
+                part.CanCollide = false
+            end
+        end
+    end
+end)
+
 RunService.Heartbeat:Connect(function()
     if not character or not hrp or not humanoid then return end
 
-    -- Xử lý Logic Bay
     if stats.flying then
         local moveDir = Vector3.new()
         local cam = workspace.CurrentCamera
-        
         if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.CFrame.LookVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.CFrame.LookVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - cam.CFrame.RightVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0,1,0) end
         if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0,1,0) end
-
-        if moveDir.Magnitude > 0 then
-            flyForce.Position = hrp.Position + (moveDir.Unit * stats.flySpeed)
-        else
-            flyForce.Position = hrp.Position
-        end
-        
+        flyForce.Position = moveDir.Magnitude > 0 and hrp.Position + (moveDir.Unit * stats.flySpeed) or hrp.Position
         flyGyro.CFrame = cam.CFrame
         humanoid.PlatformStand = true
     end
 
-    -- Ép chỉ số liên tục
     if stats.autoMaintain then
         if humanoid.MaxHealth ~= stats.health then humanoid.MaxHealth = stats.health end
         if humanoid.Health ~= stats.health then humanoid.Health = stats.health end
-
         if not stats.flying then
             humanoid.WalkSpeed = stats.speed
             humanoid.UseJumpPower = true
             humanoid.JumpPower = stats.jump
-            humanoid.PlatformStand = false
         end
     end
 end)
 
-print("⚡ Stats Controller V6 (With Minimize & UICorner) Loaded!")
+print("⚡ Stats Controller V7 Loaded! Press X to NoClip.")
