@@ -5,11 +5,11 @@ local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "ESP_System_FullEdition"
+screenGui.Name = "ESP_System_Optimized"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- Hàm kéo thả
+-- Hàm kéo thả giao diện (Draggable)
 local function MakeDraggable(obj)
     local dragging, dragInput, dragStart, startPos
     obj.InputBegan:Connect(function(input)
@@ -73,7 +73,7 @@ local goal = {Size = UDim2.new(1, 0, 1, 0)}
 local tween = TweenService:Create(progressFill, tweenInfo, goal)
 
 ----------------------------------------------------------------
--- ROLES
+-- ROLES & DATA
 ----------------------------------------------------------------
 local Roles = {
     Murderer   = {color = Color3.fromRGB(255, 0, 0), keywords = {"knife"}},
@@ -90,8 +90,10 @@ local Roles = {
     Innocent   = {color = Color3.fromRGB(0, 255, 0), keywords = {}}
 }
 
+local playerRoles = {} -- Cache để lưu role của player
+
 ----------------------------------------------------------------
--- GUI CHÍNH (ẩn lúc đầu, hiện sau khi loading xong)
+-- GUI CHÍNH
 ----------------------------------------------------------------
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 160, 0, 50)
@@ -105,7 +107,7 @@ MakeDraggable(MainFrame)
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
 local ESPButton = Instance.new("TextButton")
-ESPButton.Size = UDim2.new(0.45, 0, 0.8, 0)
+ESPButton.Size = UDim2.new(0.4, 0, 0.8, 0)
 ESPButton.Position = UDim2.new(0.05, 0, 0.1, 0)
 ESPButton.Text = "ESP: OFF"
 ESPButton.Font = Enum.Font.GothamBold
@@ -115,8 +117,8 @@ ESPButton.Parent = MainFrame
 Instance.new("UICorner", ESPButton).CornerRadius = UDim.new(0, 6)
 
 local TPListButton = Instance.new("TextButton")
-TPListButton.Size = UDim2.new(0.45, 0, 0.8, 0)
-TPListButton.Position = UDim2.new(0.5, 0, 0.1, 0)
+TPListButton.Size = UDim2.new(0.35, 0, 0.8, 0)
+TPListButton.Position = UDim2.new(0.48, 0, 0.1, 0)
 TPListButton.Text = "TP List"
 TPListButton.Font = Enum.Font.GothamBold
 TPListButton.TextColor3 = Color3.new(1, 1, 1)
@@ -124,8 +126,18 @@ TPListButton.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
 TPListButton.Parent = MainFrame
 Instance.new("UICorner", TPListButton).CornerRadius = UDim.new(0, 6)
 
+local MinimizeButton = Instance.new("TextButton")
+MinimizeButton.Size = UDim2.new(0.12, 0, 0.8, 0)
+MinimizeButton.Position = UDim2.new(0.85, 0, 0.1, 0)
+MinimizeButton.Text = "_"
+MinimizeButton.TextSize = 20
+MinimizeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+MinimizeButton.TextColor3 = Color3.new(1, 1, 1)
+MinimizeButton.Parent = MainFrame
+Instance.new("UICorner", MinimizeButton).CornerRadius = UDim.new(0, 6)
+
 ----------------------------------------------------------------
--- MINI FRAME (dấu +)
+-- MINI FRAME (Dấu +)
 ----------------------------------------------------------------
 local MiniFrame = Instance.new("Frame")
 MiniFrame.Size = UDim2.new(0, 40, 0, 40)
@@ -146,15 +158,6 @@ PlusButton.TextColor3 = Color3.fromRGB(0, 255, 0)
 PlusButton.BackgroundTransparency = 1
 PlusButton.Parent = MiniFrame
 
-local MinimizeButton = Instance.new("TextButton")
-MinimizeButton.Size = UDim2.new(0.15, 0, 0.8, 0)
-MinimizeButton.Position = UDim2.new(0.8, 0, 0.1, 0)
-MinimizeButton.Text = "_"
-MinimizeButton.TextSize = 20
-MinimizeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-MinimizeButton.TextColor3 = Color3.new(1, 1, 1)
-MinimizeButton.Parent = Main
-
 MinimizeButton.MouseButton1Click:Connect(function()
     MiniFrame.Position = MainFrame.Position
     MainFrame.Visible = false
@@ -168,7 +171,7 @@ PlusButton.MouseButton1Click:Connect(function()
 end)
 
 ----------------------------------------------------------------
--- ESP LOGIC
+-- ESP LOGIC (Tối ưu hóa)
 ----------------------------------------------------------------
 local espEnabled = false
 
@@ -203,17 +206,15 @@ local function createESP(player, color, roleName)
             nameLabel.Name = "NameLabel"
             nameLabel.Size = UDim2.new(1, 0, 1, 0)
             nameLabel.BackgroundTransparency = 1
-            nameLabel.Text = player.Name .. " - " .. roleName
-            nameLabel.TextColor3 = color
             nameLabel.Font = Enum.Font.GothamBold
             nameLabel.TextScaled = true
             nameLabel.Parent = billboard
-        else
-            local nameLabel = billboard:FindFirstChild("NameLabel")
-            if nameLabel then
-                nameLabel.Text = player.Name .. " - " .. roleName
-                nameLabel.TextColor3 = color
-            end
+        end
+        
+        local label = billboard:FindFirstChild("NameLabel")
+        if label then
+            label.Text = player.Name .. " - " .. roleName
+            label.TextColor3 = color
         end
     end
 end
@@ -243,14 +244,12 @@ ESPButton.MouseButton1Click:Connect(function()
 end)
 
 local function getRole(player)
+    if not player.Character then return "Innocent", Roles.Innocent.color end
     local items = player.Backpack:GetChildren()
     for _, item in pairs(player.Character:GetChildren()) do
         if item:IsA("Tool") then table.insert(items, item) end
     end
-    -- Debug: in case tool names differ
-    for _, tool in pairs(items) do
-        print(player.Name .. " has tool: " .. tool.Name)
-    end
+    
     for roleName, roleData in pairs(Roles) do
         for _, keyword in pairs(roleData.keywords) do
             for _, tool in pairs(items) do
@@ -263,19 +262,23 @@ local function getRole(player)
     return "Innocent", Roles.Innocent.color
 end
 
-RunService.RenderStepped:Connect(function()
-    if espEnabled then
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character then
-                local roleName, roleColor = getRole(player)
-                createESP(player, roleColor, roleName)
+-- Tối ưu: Chỉ cập nhật 1 giây/lần thay vì dùng RenderStepped (60 lần/giây)
+task.spawn(function()
+    while task.wait(1) do
+        if espEnabled then
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character then
+                    local roleName, roleColor = getRole(player)
+                    playerRoles[player.Name] = roleName -- Lưu vào cache để TP
+                    createESP(player, roleColor, roleName)
+                end
             end
         end
     end
 end)
 
 ----------------------------------------------------------------
--- TP LIST GUI
+-- TP LIST GUI (Sử dụng ScrollingFrame)
 ----------------------------------------------------------------
 local TPFrame = Instance.new("Frame")
 TPFrame.Size = UDim2.new(0, 160, 0, 250)
@@ -286,9 +289,17 @@ TPFrame.Parent = screenGui
 Instance.new("UICorner", TPFrame).CornerRadius = UDim.new(0, 8)
 MakeDraggable(TPFrame)
 
+local TPTitle = Instance.new("TextLabel")
+TPTitle.Size = UDim2.new(1, 0, 0.12, 0)
+TPTitle.BackgroundTransparency = 1
+TPTitle.Text = "Teleport Menu"
+TPTitle.Font = Enum.Font.GothamBold
+TPTitle.TextColor3 = Color3.new(1, 1, 1)
+TPTitle.Parent = TPFrame
+
 local CloseTPButton = Instance.new("TextButton")
-CloseTPButton.Size = UDim2.new(0.2, 0, 0.1, 0)
-CloseTPButton.Position = UDim2.new(0.75, 0, 0, 0)
+CloseTPButton.Size = UDim2.new(0.15, 0, 0.12, 0)
+CloseTPButton.Position = UDim2.new(0.85, 0, 0, 0)
 CloseTPButton.Text = "X"
 CloseTPButton.Font = Enum.Font.GothamBold
 CloseTPButton.TextColor3 = Color3.new(1, 1, 1)
@@ -304,38 +315,50 @@ TPListButton.MouseButton1Click:Connect(function()
     TPFrame.Visible = not TPFrame.Visible
 end)
 
-local function teleportToRole(roleName)
-    local roleData = Roles[roleName]
-    if not roleData then return end
-    for _, player in pairs(Players:GetPlayers()) do
+-- Tạo ScrollingFrame để không bị tràn màn hình
+local TPScroll = Instance.new("ScrollingFrame")
+TPScroll.Size = UDim2.new(1, 0, 0.88, 0)
+TPScroll.Position = UDim2.new(0, 0, 0.12, 0)
+TPScroll.BackgroundTransparency = 1
+TPScroll.ScrollBarThickness = 4
+TPScroll.CanvasSize = UDim2.new(0, 0, 0, 0) -- Sẽ tự động scale
+TPScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+TPScroll.Parent = TPFrame
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = TPScroll
+UIListLayout.Padding = UDim.new(0, 5)
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local function teleportToRole(targetRole)
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+    
+    for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local root = player.Character.HumanoidRootPart
-            local espBox = root:FindFirstChild("MyESP")
-            if espBox and espBox.Color3 == roleData.color then
-                LocalPlayer.Character.HumanoidRootPart.CFrame = root.CFrame + Vector3.new(0, 3, 0)
-                break
+            -- Dùng cache để tìm người nhanh hơn
+            if playerRoles[player.Name] == targetRole then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3) -- Đứng sau lưng 3 stud
+                return
             end
         end
     end
 end
 
-local yPos = 0.15
+-- Tự động tạo nút cho các Role
 for roleName, roleData in pairs(Roles) do
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.9, 0, 0.08, 0)
-    btn.Position = UDim2.new(0.05, 0, yPos, 0)
+    btn.Size = UDim2.new(0.9, 0, 0, 25) -- Cố định chiều cao
     btn.Text = "TP " .. roleName
     btn.Font = Enum.Font.GothamBold
     btn.TextColor3 = Color3.new(1, 1, 1)
     btn.BackgroundColor3 = roleData.color
-    btn.Parent = TPFrame
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    btn.Parent = TPScroll
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
 
     btn.MouseButton1Click:Connect(function()
         teleportToRole(roleName)
     end)
-
-    yPos = yPos + 0.09
 end
 
 ----------------------------------------------------------------
