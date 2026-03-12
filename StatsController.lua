@@ -45,7 +45,7 @@ Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
 -- Title
 local title = Instance.new("TextLabel", mainFrame)
 title.Size = UDim2.new(1, 0, 0, 40)
-title.Text = "⚡ STATS CONTROLLER V7 + NOCLIP"
+title.Text = "⚡ STATS CONTROLLER V7"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 title.Font = Enum.Font.GothamBold
@@ -229,3 +229,4 @@ RunService.Heartbeat:Connect(function()
 end)
 
 print("⚡ Stats Controller V7 Loaded! Press X to NoClip.")
+
