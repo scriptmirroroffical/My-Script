@@ -322,6 +322,26 @@ imageLabel_3.BorderSizePixel = 0
 imageLabel_3.Size = UDim2.new(0, 196, 0, 165)
 imageLabel_3.Parent = lOGO_WHEN_ATTACHED
 
+local camera = workspace.CurrentCamera
+local masterFrame = script.Parent
+local uiScale = Instance.new("UIScale", masterFrame)
+
+-- Độ phân giải màn hình của BẠN lúc thiết kế (ví dụ 1920x1080)
+local DESIGN_RES = Vector2.new(1920, 1080) 
+
+local function resize()
+	local viewportSize = camera.ViewportSize
+	-- Tính tỷ lệ dựa trên chiều ngang màn hình hiện tại
+	local scaleFactor = viewportSize.X / DESIGN_RES.X
+
+	-- Giới hạn scale (không để nó quá nhỏ trên điện thoại)
+	uiScale.Scale = math.clamp(scaleFactor, 0.4, 1.2) 
+end
+
+-- Cập nhật mỗi khi người chơi thay đổi kích thước màn hình
+camera:GetPropertyChangedSignal("ViewportSize"):Connect(resize)
+resize() -- Chạy ngay khi bắt đầu
+
 -- ==========================================
 -- SM ENGINE CORE v3.5 - FULL OPTIMIZED
 -- ==========================================
