@@ -48,6 +48,11 @@ local scripts = {
         Name = "NexusRemoteTunner.lua",
         Url = "https://raw.githubusercontent.com/scriptmirroroffical/My-Script/main/NexusRemoteTunner.lua",
         Description = "Nexus helps you execute scripts on the selected remote event using the Advanced Executor."
+    },
+    {
+        Name = "SM_EXECUTOR.lua",
+        Url = "https://raw.githubusercontent.com/scriptmirroroffical/My-Script/main/SM_EXECUTOR.lua",
+        Description = "My first custom executor ,scanning backdoor feature is in Beta"
     }
 }
 
