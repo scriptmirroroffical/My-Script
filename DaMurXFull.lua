@@ -38,39 +38,89 @@ local function MakeDraggable(obj)
 end
 
 ----------------------------------------------------------------
--- LOADING SCREEN
+-- LOADING SCREEN (UPDATED & OPTIMIZED)
 ----------------------------------------------------------------
-local loadingFrame = Instance.new("Frame")
+local loadingFrame = Instance.new("CanvasGroup") -- Sử dụng CanvasGroup để Fade Out mượt hơn
 loadingFrame.Size = UDim2.new(1, 0, 1, 0)
-loadingFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+loadingFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 loadingFrame.Parent = screenGui
 
 local loadingLabel = Instance.new("TextLabel")
-loadingLabel.Size = UDim2.new(1, 0, 0.2, 0)
-loadingLabel.Position = UDim2.new(0, 0, 0.4, 0)
+loadingLabel.Size = UDim2.new(1, 0, 0.1, 0)
+loadingLabel.Position = UDim2.new(0, 0, 0.45, 0)
 loadingLabel.BackgroundTransparency = 1
-loadingLabel.Text = "Loading Assets..."
+loadingLabel.Text = "Initializing System..."
 loadingLabel.TextColor3 = Color3.new(1, 1, 1)
-loadingLabel.Font = Enum.Font.GothamBold
-loadingLabel.TextScaled = true
+loadingLabel.Font = Enum.Font.GothamMedium
+loadingLabel.TextSize = 24
 loadingLabel.Parent = loadingFrame
 
+local percentageLabel = Instance.new("TextLabel")
+percentageLabel.Size = UDim2.new(1, 0, 0.05, 0)
+percentageLabel.Position = UDim2.new(0, 0, 0.52, 0)
+percentageLabel.BackgroundTransparency = 1
+percentageLabel.Text = "0%"
+percentageLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+percentageLabel.Font = Enum.Font.Code
+percentageLabel.TextSize = 18
+percentageLabel.Parent = loadingFrame
+
 local progressBg = Instance.new("Frame")
-progressBg.Size = UDim2.new(0.6, 0, 0.05, 0)
-progressBg.Position = UDim2.new(0.2, 0, 0.6, 0)
-progressBg.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+progressBg.Size = UDim2.new(0.4, 0, 0.015, 0)
+progressBg.Position = UDim2.new(0.3, 0, 0.6, 0)
+progressBg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+progressBg.BorderSizePixel = 0
 progressBg.Parent = loadingFrame
-Instance.new("UICorner", progressBg).CornerRadius = UDim.new(0, 6)
+Instance.new("UICorner", progressBg).CornerRadius = UDim.new(1, 0)
 
 local progressFill = Instance.new("Frame")
 progressFill.Size = UDim2.new(0, 0, 1, 0)
-progressFill.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+progressFill.BackgroundColor3 = Color3.fromRGB(0, 255, 127) -- Màu xanh Neon
+progressFill.BorderSizePixel = 0
 progressFill.Parent = progressBg
-Instance.new("UICorner", progressFill).CornerRadius = UDim.new(0, 6)
+Instance.new("UICorner", progressFill).CornerRadius = UDim.new(1, 0)
 
-local tweenInfo = TweenInfo.new(3, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-local goal = {Size = UDim2.new(1, 0, 1, 0)}
-local tween = TweenService:Create(progressFill, tweenInfo, goal)
+-- Thêm hiệu ứng phát sáng nhẹ cho thanh bar
+local uiGradient = Instance.new("UIGradient")
+uiGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 200, 100)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 255, 200))
+})
+uiGradient.Parent = progressFill
+
+----------------------------------------------------------------
+-- LOADING LOGIC
+----------------------------------------------------------------
+local statusMessages = {
+    "Bypassing integrity checks...",
+    "Loading player roles...",
+    "Optimizing ESP performance...",
+    "Finalizing UI components...",
+    "Ready!"
+}
+
+task.spawn(function()
+    for i = 1, #statusMessages do
+        loadingLabel.Text = statusMessages[i]
+        task.wait(0.6)
+    end
+end)
+
+-- Tween thanh tiến trình và số %
+local loadingTime = 3
+local tweenInfoLoad = TweenInfo.new(loadingTime, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+local barTween = TweenService:Create(progressFill, tweenInfoLoad, {Size = UDim2.new(1, 0, 1, 0)})
+
+barTween:Play()
+
+-- Cập nhật phần trăm thủ công theo tiến trình
+local startTick = tick()
+while tick() - startTick < loadingTime do
+    local progress = math.floor(((tick() - startTick) / loadingTime) * 100)
+    percentageLabel.Text = progress .. "%"
+    task.wait()
+end
+percentageLabel.Text = "100%"
 
 ----------------------------------------------------------------
 -- ROLES & DATA
@@ -364,8 +414,10 @@ end
 ----------------------------------------------------------------
 -- KHI LOADING XONG THÌ HIỆN GUI
 ----------------------------------------------------------------
-tween:Play()
-tween.Completed:Connect(function()
+-- Hiệu ứng Fade Out biến mất mượt mà
+local fadeTween = TweenService:Create(loadingFrame, TweenInfo.new(0.5), {GroupTransparency = 1})
+fadeTween:Play()
+fadeTween.Completed:Connect(function()
     loadingFrame:Destroy()
     MainFrame.Visible = true
 end)
