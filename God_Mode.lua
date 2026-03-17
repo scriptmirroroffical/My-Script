@@ -1,12 +1,3 @@
---[[
-    GOD MODE OMNI-HUB [V.MAX EDITION]
-    Nâng cấp:
-    - Caching System (Tối ưu hóa Heartbeat, giảm lag 90%)
-    - Cấp 1 (Stealth): Loop Heal ẩn danh (Né Anti-cheat check MaxHealth)
-    - Cấp 2 (Ghost): Tắt CanTouch + Anti-Void (Né Killbrick)
-    - Cấp 3 (God/Bypass): Clone Humanoid Bypass + Anti-Fling (Miễn nhiễm Server Scripts)
---]]
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
