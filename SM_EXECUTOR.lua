@@ -156,7 +156,7 @@ exec.BackgroundColor3 = Color3.new()
 exec.Position = UDim2.new(0.146, 0, 0.0998, 0)
 exec.BorderColor3 = Color3.new()
 exec.BorderSizePixel = 0
-exec.Size = UDim2.new(0, 857, 0, 518)
+exec.Size = UDim2.new(0, 857, 0, 574)
 exec.Parent = screenGui
 
 local uICorner_8 = Instance.new("UICorner")
@@ -166,7 +166,7 @@ uICorner_8.Parent = exec
 local mainExec = Instance.new("Frame")
 mainExec.Name = "MainExec"
 mainExec.BackgroundColor3 = Color3.new(1, 0.667, 0)
-mainExec.Position = UDim2.new(0.0105, 0, 0.0174, 0)
+mainExec.Position = UDim2.new(0.011, 0, 0.113, 0)
 mainExec.BorderColor3 = Color3.new()
 mainExec.BorderSizePixel = 0
 mainExec.Size = UDim2.new(0, 839, 0, 500)
@@ -247,6 +247,20 @@ inputSctipt.Selectable = true
 local uICorner_10 = Instance.new("UICorner")
 uICorner_10.Name = "UICorner"
 uICorner_10.Parent = inputSctipt
+
+local tABIN = Instance.new("Frame")
+tABIN.Name = "TABIN"
+tABIN.BackgroundTransparency = 1
+tABIN.Position = UDim2.new(0.0105, 0, 0.0157, 0)
+tABIN.BorderColor3 = Color3.new()
+tABIN.BackgroundColor3 = Color3.new(1, 1, 1)
+tABIN.BorderSizePixel = 0
+tABIN.Size = UDim2.new(0, 838, 0, 42)
+tABIN.Parent = exec
+
+local uICorner = Instance.new("UICorner")
+uICorner.Name = "UICorner"
+uICorner.Parent = tABIN
 
 local textButton = Instance.new("TextButton")
 textButton.Name = "TextButton"
@@ -452,7 +466,7 @@ uICorner.Name = "UICorner"
 uICorner.Parent = clearlog
 
 -- ==========================================
--- SM AUTO-SCALE CORE (SM-SYSTEM)
+-- SM AUTO-SCALE CORE (SM-SYSTEM) - OPTIMIZED
 -- ==========================================
 
 local ScaleContainer = Instance.new("Frame")
@@ -464,163 +478,163 @@ ScaleContainer.Parent = screenGui
 local uiScale = Instance.new("UIScale")
 uiScale.Parent = ScaleContainer
 
--- Gán các bảng vào (Riêng lOGO_WHEN_ATTACHED để ngoài screenGui)
-main.Parent = ScaleContainer
-exec.Parent = ScaleContainer
-output.Parent = ScaleContainer
+if main then main.Parent = ScaleContainer end
+if exec then exec.Parent = ScaleContainer end
+if output then output.Parent = ScaleContainer end
 
 local function handleScaling()
     local currentRes = workspace.CurrentCamera.ViewportSize
-    if currentRes.X < 100 then return end -- Đợi màn hình load xong
-    
-    -- TỰ ĐỘNG: Giả định bạn thiết kế Main (857px) cho màn hình chuẩn 1920px
-    -- Tỉ lệ mong muốn: Main chiếm khoảng 45% chiều rộng màn hình
+    if currentRes.X < 100 then return end
     local targetWidth = 857 / 0.45 
-    
     local finalScale = currentRes.X / targetWidth
-    
-    -- Giới hạn để không bị quá bé hoặc quá to
     uiScale.Scale = math.clamp(finalScale, 0.5, 1.2)
 end
 
-workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(handleScaling)
+local resizeDebounce = false
+workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+    if not resizeDebounce then
+        resizeDebounce = true
+        task.wait(0.1)
+        handleScaling()
+        resizeDebounce = false
+    end
+end)
 handleScaling()
 
 -- ==========================================
--- SM ENGINE CORE v4.0 (-Preview-) - FULL OPTIMIZED & SANDBOXED
+-- SM ENGINE CORE v4.6 (-BETA-) - ADVANCED SANDBOX & FULL SCAN
 -- ==========================================
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
 -- ==========================================
 -- 1. CẤU HÌNH & TRẠNG THÁI HỆ THỐNG
 -- ==========================================
 local EngineState = {
-	IsAttached = false,
-	IsMinimized = false,
-	AutoExecEnabled = false,
-	SSMode = false,
-	SpyEnabled = false,
-	SpyHooked = false,
-	LogCount = 0,
-	MaxLogs = 100,
-	AutoExecFile = "SMEngine_AutoExec.txt"
+    IsAttached = false,
+    IsMinimized = false,
+    AutoExecEnabled = false,
+    SSMode = false,
+    SpyEnabled = false,
+    SpyHooked = false,
+    MaxLogs = 150,
+    AutoExecFile = "SMEngine_AutoExec_v45.txt"
 }
 
 local Colors = {
-	Info = Color3.fromRGB(0, 170, 255),
-	Success = Color3.fromRGB(0, 255, 100),
-	Warning = Color3.fromRGB(255, 170, 0),
-	Error = Color3.fromRGB(255, 50, 50),
-	Text = Color3.fromRGB(240, 240, 240),
-	System = Color3.fromRGB(170, 85, 255)
+    Info = Color3.fromRGB(0, 170, 255),
+    Success = Color3.fromRGB(0, 255, 100),
+    Warning = Color3.fromRGB(255, 170, 0),
+    Error = Color3.fromRGB(255, 50, 50),
+    Text = Color3.fromRGB(240, 240, 240),
+    System = Color3.fromRGB(170, 85, 255)
 }
 
-local TrapKeywords = {"ban", "kick", "detect", "anticheat", "security", "log"}
+local TrapKeywords = {"ban", "kick", "detect", "anticheat", "security", "log", "report"}
 local tInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
 
 -- ==========================================
 -- 2. HỆ THỐNG FILE & LOGGER
 -- ==========================================
 local function safeWriteFile(name, content)
-	if writefile then pcall(function() writefile(name, content) end) end
+    if writefile then pcall(function() writefile(name, content) end) end
 end
-
 local function safeReadFile(name)
-	if readfile and isfile and isfile(name) then
-		local s, c = pcall(function() return readfile(name) end)
-		if s then return c end
-	end
-	return nil
+    if readfile and isfile and isfile(name) then
+        local s, c = pcall(function() return readfile(name) end)
+        if s then return c end
+    end
+    return nil
 end
 
+local LogHistory = {}
 local function logMessage(text, colorType)
-	local color = colorType or Colors.Text
-	local stamp = string.format("<font color=\"#888888\">[%s]</font>", os.date("%X"))
-	local hex = string.format("#%02X%02X%02X", color.R*255, color.G*255, color.B*255)
+    local color = colorType or Colors.Text
+    local stamp = string.format("<font color=\"#888888\">[%s]</font>", os.date("%X"))
+    local hex = string.format("#%02X%02X%02X", color.R*255, color.G*255, color.B*255)
+    local msg = string.format("\n%s <font color=\"%s\">[>] %s</font>", stamp, hex, tostring(text))
 
-	EngineState.LogCount = EngineState.LogCount + 1
-	if EngineState.LogCount > EngineState.MaxLogs and output_2 then
-		local currentText = output_2.Text
-		local firstLineBreak = currentText:find("\n")
-		if firstLineBreak then
-			output_2.Text = currentText:sub(firstLineBreak + 1)
-			EngineState.LogCount = EngineState.LogCount - 1
-		end
-	end
+    table.insert(LogHistory, msg)
+    if #LogHistory > EngineState.MaxLogs then table.remove(LogHistory, 1) end
 
-	local msg = string.format("\n%s <font color=\"%s\">[>] %s</font>", stamp, hex, tostring(text))
-	if output_2 then
-		output_2.Text = output_2.Text .. msg
-		pcall(function()
-			local scroll = output_2.Parent
-			if scroll and scroll:IsA("ScrollingFrame") then
-				scroll.CanvasPosition = Vector2.new(0, scroll.AbsoluteWindowSize.Y + 9999)
-			end
-		end)
-	else
-		print("[SM ENGINE] " .. tostring(text))
-	end
+    if output_2 then
+        output_2.Text = table.concat(LogHistory, "")
+        pcall(function()
+            local scroll = output_2.Parent
+            if scroll and scroll:IsA("ScrollingFrame") then
+                scroll.CanvasPosition = Vector2.new(0, scroll.AbsoluteCanvasSize.Y)
+            end
+        end)
+    else
+        print("[SM v4.5] " .. tostring(text))
+    end
 end
 
 -- ==========================================
--- 3. HỆ THỐNG SANDBOX (KHẮC PHỤC LỖI HUB/UI)
+-- 3. HỆ THỐNG SANDBOX NÂNG CAO v4.6 (COMPATIBILITY MODE)
 -- ==========================================
-local FakeGenv = {}
+-- Sử dụng getgenv thực của Executor để đảm bảo tương thích với script lớn
+local RealGenv = (getgenv and getgenv()) or _G
+
 local MockAPI = {
-    ["getgenv"] = function() return FakeGenv end,
+    -- Basic API & Compatibility
+    ["getgenv"] = function() return RealGenv end,
     ["getrenv"] = function() return getfenv(0) end,
-    ["identifyexecutor"] = function() return "SMEngine", "3.5" end,
-    ["setclipboard"] = function(t) logMessage("Clipboard: " .. tostring(t), Colors.Info) end,
-    ["isfile"] = function() return false end,
-    ["writefile"] = function(n, c) logMessage("Saved: " .. n, Colors.System) end,
-    ["readfile"] = function() return "" end,
-    ["delfile"] = function() return true end,
-    ["isfolder"] = function() return false end,
-    ["makefolder"] = function() return true end,
-    ["getcustomasset"] = function() return "rbxassetid://0" end,
-    ["gethui"] = function() 
-        local pg = game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui")
-        return pg or game:GetService("CoreGui") 
+    ["identifyexecutor"] = function() return "SMEngine", "4.6" end,
+    ["checkcaller"] = checkcaller or function() return true end,
+    
+    -- Metadata Functions (Bắt buộc cho script lớn)
+    ["setreadonly"] = setreadonly or function() return true end,
+    ["make_writeable"] = make_writeable or function() return true end,
+    ["getrawmetatable"] = getrawmetatable or function(o) return getmetatable(o) end,
+    
+    -- File System
+    ["isfile"] = isfile or function() return false end,
+    ["writefile"] = writefile or function(n, c) if writefile then pcall(writefile, n, c) end end,
+    ["readfile"] = readfile or function(n) return readfile and readfile(n) or "" end,
+    
+    -- Advanced (UNC)
+    ["request"] = request or http_request or (syn and syn.request),
+    ["gethui"] = gethui or function() 
+        return game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui") or game:GetService("CoreGui") 
     end,
 }
 
 local function ExecuteWithSandbox(code)
-    local executorLoadstring = loadstring or (getgenv and getgenv().loadstring)
-    if not executorLoadstring then
-        return false, "Executor của bạn không hỗ trợ loadstring."
-    end
+    local load = loadstring or (getgenv and getgenv().loadstring)
+    if not load then return false, "Executor không hỗ trợ loadstring." end
 
-    local func, compileError = executorLoadstring(code)
+    local func, compileError = load(code)
     if not func then return false, "Syntax Error: " .. tostring(compileError) end
 
-    -- Thiết lập môi trường ảo
     local env = getfenv(func)
+    -- Metatable Bypass: Nếu không tìm thấy trong Sandbox, nó sẽ tự tìm ở môi trường thực (RealGenv)
     local sandbox = setmetatable({}, {
         __index = function(_, k)
             if MockAPI[k] then return MockAPI[k] end
             if k == "game" then
                 return setmetatable({}, {
                     __index = function(_, gameKey)
+                        -- Đặc biệt quan trọng cho script lớn: Xử lý GetService và HttpGet
                         if gameKey == "GetService" then
-                            return function(self, sName)
-                                if sName == "CoreGui" then
-                                    local pg = game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui")
-                                    return pg or game:GetService("CoreGui")
-                                end
-                                return game:GetService(sName)
-                            end
+                            return function(self, sName) return game:GetService(sName) end
+                        elseif gameKey == "HttpGet" then
+                            return function(self, ...) return game:HttpGet(...) end
                         end
                         local s, r = pcall(function() return game[gameKey] end)
                         return s and r or nil
                     end
                 })
             end
-            return env[k]
+            return RealGenv[k] or env[k]
         end,
-        __newindex = function(_, k, v) FakeGenv[k] = v end
+        __newindex = function(_, k, v) 
+            RealGenv[k] = v -- Cho phép script lưu biến vào getgenv() thật
+        end
     })
 
     setfenv(func, sandbox)
@@ -631,38 +645,13 @@ end
 -- 4. HỆ THỐNG KÉO THẢ TỐI ƯU
 -- ==========================================
 local function makeDraggableSmooth(mainFrame, attachedObjects, lerpSpeed)
-    if type(attachedObjects) == "number" then
-        lerpSpeed = attachedObjects
-        attachedObjects = {}
-    end
-    attachedObjects = attachedObjects or {}
+    if not mainFrame then return end
+    attachedObjects = type(attachedObjects) == "table" and attachedObjects or {}
     lerpSpeed = lerpSpeed or 0.15
 
-    local dragging, dragInput, dragStart = false, nil, nil
-    local startPositions, currentTargets = {}, {}
-
-    if not mainFrame then return end
-
-    currentTargets[mainFrame] = mainFrame.Position
-    for _, obj in ipairs(attachedObjects) do if obj then currentTargets[obj] = obj.Position end end
-
-    local function update(input)
-        local container = mainFrame.Parent
-        local uiScale = container and container:FindFirstChildOfClass("UIScale")
-        local s = uiScale and uiScale.Scale or 1
-        local delta = (input.Position - dragStart) / s
-
-        local sPosMain = startPositions[mainFrame]
-        if sPosMain then
-            currentTargets[mainFrame] = UDim2.new(sPosMain.X.Scale, sPosMain.X.Offset + delta.X, sPosMain.Y.Scale, sPosMain.Y.Offset + delta.Y)
-        end
-        for _, obj in ipairs(attachedObjects) do
-            local sPos = startPositions[obj]
-            if sPos then
-                currentTargets[obj] = UDim2.new(sPos.X.Scale, sPos.X.Offset + delta.X, sPos.Y.Scale, sPos.Y.Offset + delta.Y)
-            end
-        end
-    end
+    local dragging, dragStart = false, nil
+    local startPositions = {}
+    local renderConnection = nil
 
     mainFrame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -671,35 +660,36 @@ local function makeDraggableSmooth(mainFrame, attachedObjects, lerpSpeed)
             startPositions[mainFrame] = mainFrame.Position
             for _, obj in ipairs(attachedObjects) do startPositions[obj] = obj.Position end
 
-            local connection
-            connection = input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                    connection:Disconnect()
+            if renderConnection then renderConnection:Disconnect() end
+            renderConnection = RunService.RenderStepped:Connect(function()
+                local lastInput = UserInputService:GetMouseLocation()
+                local container = mainFrame.Parent
+                local scale = (container and container:FindFirstChildOfClass("UIScale") and container:FindFirstChildOfClass("UIScale").Scale) or 1
+                local delta = (Vector3.new(lastInput.X, lastInput.Y - 36, 0) - dragStart) / scale
+                
+                if dragging then
+                    local sPosMain = startPositions[mainFrame]
+                    mainFrame.Position = mainFrame.Position:Lerp(UDim2.new(sPosMain.X.Scale, sPosMain.X.Offset + delta.X, sPosMain.Y.Scale, sPosMain.Y.Offset + delta.Y), lerpSpeed)
+                    for _, obj in ipairs(attachedObjects) do
+                        local sPos = startPositions[obj]
+                        if sPos then
+                            obj.Position = obj.Position:Lerp(UDim2.new(sPos.X.Scale, sPos.X.Offset + delta.X, sPos.Y.Scale, sPos.Y.Offset + delta.Y), lerpSpeed)
+                        end
+                    end
+                else
+                    if renderConnection then renderConnection:Disconnect() renderConnection = nil end
                 end
             end)
         end
     end)
 
-    mainFrame.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input == dragInput then update(input) end
-    end)
-
-    RunService.RenderStepped:Connect(function()
-        if currentTargets[mainFrame] then mainFrame.Position = mainFrame.Position:Lerp(currentTargets[mainFrame], lerpSpeed) end
-        for _, obj in ipairs(attachedObjects) do
-            if currentTargets[obj] then obj.Position = obj.Position:Lerp(currentTargets[obj], lerpSpeed) end
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
         end
     end)
 end
 
--- Khởi tạo kéo thả (Cần đảm bảo các biến main, exec, output đã tồn tại)
 pcall(function()
     makeDraggableSmooth(main, 0.2)
     makeDraggableSmooth(exec, 0.2)
@@ -707,198 +697,194 @@ pcall(function()
 end)
 
 -- ==========================================
--- 5. QUẢN LÝ CỬA SỔ & HOẠT ẢNH
+-- 5. QUẢN LÝ CỬA SỔ
 -- ==========================================
 if closeButton then
-	closeButton.MouseButton1Click:Connect(function()
-		logMessage("Shutting down engine...", Colors.Warning)
-		if imageLabel_2 then imageLabel_2.Visible = false end
-		if main then TweenService:Create(main, tInfo, {Size = UDim2.new(0,0,0,0), BackgroundTransparency = 1}):Play() end
-		task.wait(0.5)
-		if screenGui then screenGui:Destroy() end
-	end)
+    closeButton.MouseButton1Click:Connect(function()
+        logMessage("Shutting down SM v4.5...", Colors.Warning)
+        if imageLabel_2 then imageLabel_2.Visible = false end
+        if main then TweenService:Create(main, tInfo, {Size = UDim2.new(0,0,0,0), BackgroundTransparency = 1}):Play() end
+        task.wait(0.5)
+        if screenGui then screenGui:Destroy() end
+    end)
 end
 
 if minimizeButton then
-	minimizeButton.MouseButton1Click:Connect(function()
-		EngineState.IsMinimized = not EngineState.IsMinimized
-		local targetAlpha = EngineState.IsMinimized and 1 or 0
-		local targetVis = not EngineState.IsMinimized
+    minimizeButton.MouseButton1Click:Connect(function()
+        EngineState.IsMinimized = not EngineState.IsMinimized
+        local targetAlpha = EngineState.IsMinimized and 1 or 0
+        local targetVis = not EngineState.IsMinimized
 
-		if exec then
-			TweenService:Create(exec, tInfo, {BackgroundTransparency = targetAlpha}):Play()
-			for _, v in pairs(exec:GetDescendants()) do if v:IsA("GuiObject") then v.Visible = targetVis end end
-		end
-		if output then
-			TweenService:Create(output, tInfo, {BackgroundTransparency = targetAlpha}):Play()
-			for _, v in pairs(output:GetDescendants()) do if v:IsA("GuiObject") then v.Visible = targetVis end end
-		end
-		logMessage(EngineState.IsMinimized and "Windows Minimized." or "Windows Restored.", Colors.Info)
-	end)
+        local function toggleVis(frame)
+            if frame then
+                TweenService:Create(frame, tInfo, {BackgroundTransparency = targetAlpha}):Play()
+                for _, v in pairs(frame:GetDescendants()) do 
+                    if v:IsA("GuiObject") and v.Name ~= "ScaleContainer" then v.Visible = targetVis end 
+                end
+            end
+        end
+
+        toggleVis(exec)
+        toggleVis(output)
+        logMessage(EngineState.IsMinimized and "Windows Minimized." or "Windows Restored.", Colors.Info)
+    end)
 end
 
 if autoExecToggle then
-	autoExecToggle.MouseButton1Click:Connect(function()
-		EngineState.AutoExecEnabled = not EngineState.AutoExecEnabled
-		if EngineState.AutoExecEnabled then
-			if inputSctipt and inputSctipt.Text ~= "" then safeWriteFile(EngineState.AutoExecFile, inputSctipt.Text) end
-			logMessage("Auto-Execute ENABLED.", Colors.Success)
-			autoExecToggle.BackgroundColor3 = Colors.Success
-		else
-			logMessage("Auto-Execute DISABLED.", Colors.Warning)
-			autoExecToggle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-		end
-	end)
+    autoExecToggle.MouseButton1Click:Connect(function()
+        EngineState.AutoExecEnabled = not EngineState.AutoExecEnabled
+        if EngineState.AutoExecEnabled then
+            if inputSctipt and inputSctipt.Text ~= "" then safeWriteFile(EngineState.AutoExecFile, inputSctipt.Text) end
+            logMessage("Auto-Exec ENABLED.", Colors.Success)
+            autoExecToggle.BackgroundColor3 = Colors.Success
+        else
+            logMessage("Auto-Exec DISABLED.", Colors.Warning)
+            autoExecToggle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        end
+    end)
 end
 
 if clearlog then
-	clearlog.MouseButton1Click:Connect(function()
-		if output_2 then
-			local originalColor = clearlog.BackgroundColor3
-			clearlog.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-			output_2.Text = ""
-			EngineState.LogCount = 0
-			if backout_2 then
-				backout_2.CanvasPosition = Vector2.new(0, 0)
-				backout_2.CanvasSize = UDim2.new(0, 0, 0, 0)
-			end
-			logMessage("System Log Cleared.", Colors.System)
-			task.wait(0.1)
-			clearlog.BackgroundColor3 = originalColor
-		end
-	end)
-end
-
--- ==========================================
--- 6. LÕI THỰC THI (ATTACH, EXECUTE, SCAN, SPY)
--- ==========================================
-
--- Nút Attach
-if textButton then
-	textButton.MouseButton1Click:Connect(function()
-		if EngineState.IsAttached then logMessage("Already attached!", Colors.Warning) return end
-
-		textButton.Text = "INJECTING..."
-		textButton.BackgroundColor3 = Color3.fromRGB(200, 200, 0)
-		logMessage("Bypassing Environment...", Colors.Warning)
-
-		task.spawn(function()
-			task.wait(1.2)
-			EngineState.IsAttached = true
-			textButton.Text = "ATTACHED"
-			textButton.BackgroundColor3 = Colors.Success
-			logMessage("Attached Successfully! System Ready.", Colors.Success)
-
-			if EngineState.AutoExecEnabled then
-				local savedScript = safeReadFile(EngineState.AutoExecFile)
-				if savedScript and savedScript ~= "" then
-					logMessage("Running Auto-Exec payload...", Colors.System)
-					ExecuteWithSandbox(savedScript)
-				end
-			end
-		end)
-	end)
-end
-
--- Nút Scan SS (textButton_2)
-if textButton_2 then
-	textButton_2.MouseButton1Click:Connect(function()
-		logMessage("Deep Scan Initiated (Safety Mode: ON)...", Colors.Warning)
-		local foundCount = 0
-
-		task.spawn(function()
-			for _, item in pairs(game:GetDescendants()) do
-				if _ % 150 == 0 then RunService.Heartbeat:Wait() end 
-				if item:IsA("RemoteEvent") or item:IsA("RemoteFunction") then
-					local name = item.Name:lower()
-					local isTrap = false
-					for _, word in ipairs(TrapKeywords) do
-						if name:find(word) then isTrap = true break end
-					end
-
-					if isTrap then
-						logMessage("⚠️ TRAP DETECTED: " .. item.Name, Colors.Error)
-					else
-						if name:find("run") or name:find("load") or name:find("exec") or #name > 30 then
-							logMessage("✅ Vulnerable Found: " .. item.Name, Colors.Success)
-							foundCount = foundCount + 1
-						end
-					end
-				end
-			end
-
-			if foundCount > 0 then
-				EngineState.SSMode = true
-				if eXECButton then
-					eXECButton.Text = "EXECUTE (SS)"
-					eXECButton.BackgroundColor3 = Colors.System
-				end
-				logMessage("Scan Complete: " .. foundCount .. " remotes verified safe.", Colors.Success)
-			else
-				logMessage("Scan Complete: No safe backdoors found.", Colors.Warning)
-			end
-		end)
-	end)
-end
-
--- Nút Execute Hợp Nhất (eXECButton)
-if eXECButton then
-	eXECButton.MouseButton1Click:Connect(function()
-		if not EngineState.IsAttached then 
-			logMessage("CRITICAL: Please ATTACH first!", Colors.Error) 
-			return 
-		end
-        if not inputSctipt then return end
-		local code = inputSctipt.Text
-		if code:gsub("%s+", "") == "" then return end
-
-		if EngineState.SSMode then
-			logMessage("SS Execution: Infiltrating via Remotes...", Colors.System)
-			task.spawn(function()
-                local executed = false
-				for _, remote in pairs(game:GetDescendants()) do
-                    if _ % 100 == 0 then RunService.Heartbeat:Wait() end
-					if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
-						local n = remote.Name:lower()
-						if (n:find("run") or n:find("load") or n:find("exec") or #n > 30) and not n:find("ban") then
-							pcall(function()
-								if remote:IsA("RemoteEvent") then remote:FireServer(code) 
-								else remote:InvokeServer(code) end
-							end)
-                            executed = true
-						end
-					end
-				end
-                if executed then logMessage("SS Payload Sent!", Colors.Success) end
-			end)
-		else
-			logMessage("Executing locally with Sandbox...", Colors.Info)
-			task.spawn(function()
-				local success, err = ExecuteWithSandbox(code)
-				if success then logMessage("Executed Successfully.", Colors.Success)
-				else logMessage(tostring(err), Colors.Error) end
-			end)
-		end
-	end)
-end
-
--- Nút Reset Mode
-if resetModeBtn then
-	resetModeBtn.MouseButton1Click:Connect(function()
-		EngineState.SSMode = false
-		if eXECButton then
-            eXECButton.Text = "EXECUTE"
-		    eXECButton.BackgroundColor3 = Colors.Info
+    clearlog.MouseButton1Click:Connect(function()
+        if output_2 then
+            local originalColor = clearlog.BackgroundColor3
+            clearlog.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+            table.clear(LogHistory)
+            output_2.Text = ""
+            if backout_2 then backout_2.CanvasPosition = Vector2.new(0, 0) end
+            logMessage("System Log Cleared.", Colors.System)
+            task.wait(0.1)
+            clearlog.BackgroundColor3 = originalColor
         end
-		logMessage("Mode Reset: Back to local execution.", Colors.Info)
-	end)
+    end)
 end
 
--- Nút Remote Spy
+-- ==========================================
+-- 6. LÕI THỰC THI & QUÉT TOÀN BỘ GAME (FULL SCAN)
+-- ==========================================
+
+if textButton then
+    textButton.MouseButton1Click:Connect(function()
+        if EngineState.IsAttached then logMessage("Already attached!", Colors.Warning) return end
+        textButton.Text = "INJECTING..."
+        textButton.BackgroundColor3 = Color3.fromRGB(200, 200, 0)
+        logMessage("Bypassing Environment v4.5...", Colors.Warning)
+
+        task.spawn(function()
+            task.wait(1.2)
+            EngineState.IsAttached = true
+            textButton.Text = "ATTACHED"
+            textButton.BackgroundColor3 = Colors.Success
+            logMessage("Attached Successfully! System Ready.", Colors.Success)
+
+            if EngineState.AutoExecEnabled then
+                local savedScript = safeReadFile(EngineState.AutoExecFile)
+                if savedScript and savedScript ~= "" then
+                    logMessage("Running Auto-Exec payload...", Colors.System)
+                    ExecuteWithSandbox(savedScript)
+                end
+            end
+        end)
+    end)
+end
+
+if textButton_2 then
+    textButton_2.MouseButton1Click:Connect(function()
+        logMessage("Full Game Scan Initiated... This may take a moment.", Colors.Warning)
+        local foundCount = 0
+
+        task.spawn(function()
+            -- Lấy TOÀN BỘ Descendants trong game
+            local allObjects = game:GetDescendants()
+            local totalObjects = #allObjects
+            
+            for i, item in ipairs(allObjects) do
+                -- Anti-Crash: Ép nghỉ sau mỗi 500 vòng lặp để tránh treo máy
+                if i % 500 == 0 then RunService.Heartbeat:Wait() end 
+                
+                if item:IsA("RemoteEvent") or item:IsA("RemoteFunction") then
+                    local name = item.Name:lower()
+                    local isTrap = false
+                    for _, word in ipairs(TrapKeywords) do
+                        if name:find(word) then isTrap = true break end
+                    end
+
+                    if isTrap then
+                        logMessage("⚠️ TRAP DETECTED: " .. item.GetFullName(item), Colors.Error)
+                    elseif name:find("run") or name:find("load") or name:find("exec") or #name > 30 then
+                        logMessage("✅ Vulnerable Found: " .. item.Name, Colors.Success)
+                        foundCount = foundCount + 1
+                    end
+                end
+            end
+
+            if foundCount > 0 then
+                EngineState.SSMode = true
+                if eXECButton then
+                    eXECButton.Text = "EXECUTE (SS)"
+                    eXECButton.BackgroundColor3 = Colors.System
+                end
+                logMessage("Scan Complete! Analyzed " .. totalObjects .. " instances. Found " .. foundCount .. " safe backdoors.", Colors.Success)
+            else
+                logMessage("Scan Complete! Analyzed " .. totalObjects .. " instances. No safe backdoors found.", Colors.Warning)
+            end
+        end)
+    end)
+end
+
+if eXECButton then
+    eXECButton.MouseButton1Click:Connect(function()
+        if not EngineState.IsAttached then logMessage("CRITICAL: Please ATTACH first!", Colors.Error) return end
+        if not inputSctipt then return end
+        local code = inputSctipt.Text
+        if code:gsub("%s+", "") == "" then return end
+
+        if EngineState.SSMode then
+            logMessage("SS Execution: Infiltrating via Remotes...", Colors.System)
+            task.spawn(function()
+                local executed = false
+                local allObjects = game:GetDescendants()
+                
+                for i, remote in ipairs(allObjects) do
+                    if i % 500 == 0 then RunService.Heartbeat:Wait() end
+                    if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
+                        local n = remote.Name:lower()
+                        if (n:find("run") or n:find("load") or n:find("exec") or #n > 30) and not n:find("ban") then
+                            pcall(function()
+                                if remote:IsA("RemoteEvent") then remote:FireServer(code) 
+                                else remote:InvokeServer(code) end
+                            end)
+                            executed = true
+                        end
+                    end
+                end
+                if executed then logMessage("SS Payload Sent!", Colors.Success) end
+            end)
+        else
+            logMessage("Executing locally (v4.5 Sandbox)...", Colors.Info)
+            task.spawn(function()
+                local success, err = ExecuteWithSandbox(code)
+                if success then logMessage("Executed Successfully.", Colors.Success)
+                else logMessage(tostring(err), Colors.Error) end
+            end)
+        end
+    end)
+end
+
+if resetModeBtn then
+    resetModeBtn.MouseButton1Click:Connect(function()
+        EngineState.SSMode = false
+        if eXECButton then
+            eXECButton.Text = "EXECUTE"
+            eXECButton.BackgroundColor3 = Colors.Info
+        end
+        logMessage("Mode Reset: Back to local execution.", Colors.Info)
+    end)
+end
+
 if spyBtn then
     spyBtn.MouseButton1Click:Connect(function()
         EngineState.SpyEnabled = not EngineState.SpyEnabled
-        
         if EngineState.SpyEnabled then
             spyBtn.BackgroundColor3 = Colors.Success
             spyBtn.Text = "Spying: ON"
@@ -906,39 +892,29 @@ if spyBtn then
 
             if EngineState.SpyHooked then return end
 
-            local hasMetamethod = (hookmetamethod ~= nil)
-            local hasHookFunction = (hookfunction ~= nil)
-
-            if hasMetamethod then
+            if hookmetamethod then
                 logMessage("Using High-Level Hook (Namecall)...", Colors.Success)
                 local oldNamecall
                 oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
                     local method = getnamecallmethod()
                     if EngineState.SpyEnabled and not checkcaller() then
                         if method == "FireServer" or method == "InvokeServer" then
-                            task.spawn(function() logMessage("[Spy] " .. self.Name .. " (" .. method .. ")", Colors.Warning) end)
+                            local rName = self.Name
+                            task.spawn(function() logMessage("[Spy] " .. rName .. " (" .. method .. ")", Colors.Warning) end)
                         end
                     end
                     return oldNamecall(self, ...)
                 end)
                 EngineState.SpyHooked = true
-
-            elseif hasHookFunction then
+            elseif hookfunction then
                 logMessage("Fallback: Using Direct Function Hook...", Colors.Info)
                 local oldFireServer
                 oldFireServer = hookfunction(Instance.new("RemoteEvent").FireServer, function(self, ...)
                     if EngineState.SpyEnabled and not checkcaller() then
-                        task.spawn(function() logMessage("[Spy] " .. self.Name .. " (FireServer)", Colors.Warning) end)
+                        local rName = self.Name
+                        task.spawn(function() logMessage("[Spy] " .. rName .. " (FireServer)", Colors.Warning) end)
                     end
                     return oldFireServer(self, ...)
-                end)
-
-                local oldInvokeServer
-                oldInvokeServer = hookfunction(Instance.new("RemoteFunction").InvokeServer, function(self, ...)
-                    if EngineState.SpyEnabled and not checkcaller() then
-                        task.spawn(function() logMessage("[Spy] " .. self.Name .. " (InvokeServer)", Colors.Warning) end)
-                    end
-                    return oldInvokeServer(self, ...)
                 end)
                 EngineState.SpyHooked = true
             else
@@ -960,14 +936,195 @@ end
 -- ==========================================
 if lOGO_WHEN_ATTACHED and imageLabel_2 then
     local orbitAngle = 0
+    local offsetX = imageLabel_2.Size.X.Offset / 2
+    local offsetY = imageLabel_2.Size.Y.Offset / 2
+    
     RunService.RenderStepped:Connect(function(dt)
         orbitAngle = orbitAngle + math.rad(90) * dt
         local centerX = lOGO_WHEN_ATTACHED.AbsoluteSize.X / 2
         local centerY = lOGO_WHEN_ATTACHED.AbsoluteSize.Y / 2
-        local newX = centerX + math.cos(orbitAngle) * 70
-        local newY = centerY + math.sin(orbitAngle) * 70
-        imageLabel_2.Position = UDim2.fromOffset(newX - imageLabel_2.Size.X.Offset / 2, newY - imageLabel_2.Size.Y.Offset / 2)
+        
+        imageLabel_2.Position = UDim2.fromOffset(
+            (centerX + math.cos(orbitAngle) * 70) - offsetX, 
+            (centerY + math.sin(orbitAngle) * 70) - offsetY
+        )
     end)
 end
 
-logMessage("SM Engine v4.0 [-Preview-] Full Core Initialized.", Colors.Text)
+-- ==========================================
+-- 8. CORE QUẢN LÝ TAB v4.8 (FIX OVERFLOW & FILE SYSTEM)
+-- ==========================================
+
+local TabSystem = {
+    Tabs = {}, 
+    CurrentTabIndex = 1,
+    ConfigFolder = "SMEngine_Workspace",
+    ActiveTabColor = Color3.fromRGB(100, 100, 100),
+    InactiveTabColor = Color3.fromRGB(45, 45, 45)
+}
+
+if makefolder then pcall(makefolder, TabSystem.ConfigFolder) end
+
+tABIN:ClearAllChildren() 
+local tabScroll = Instance.new("ScrollingFrame")
+tabScroll.Size = UDim2.new(1, -40, 1, 0) 
+tabScroll.BackgroundTransparency = 1
+tabScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+tabScroll.ScrollBarThickness = 2
+tabScroll.ScrollingDirection = Enum.ScrollingDirection.X -- ĐÃ FIX: Chuyển sang X
+tabScroll.AutomaticCanvasSize = Enum.AutomaticSize.X
+tabScroll.Parent = tABIN
+
+local tabLayout = Instance.new("UIListLayout")
+tabLayout.FillDirection = Enum.FillDirection.Horizontal
+tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+tabLayout.Padding = UDim.new(0, 5)
+tabLayout.Parent = tabScroll
+
+-- Nút Thêm Tab (+) nằm ngoài Scroll để luôn cố định
+local addTabBtn = Instance.new("TextButton")
+addTabBtn.Size = UDim2.new(0, 35, 0, 35)
+addTabBtn.Position = UDim2.new(1, -35, 0, 3)
+addTabBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+addTabBtn.Text = "+"
+addTabBtn.TextColor3 = Color3.new(1, 1, 1)
+addTabBtn.TextSize = 20
+addTabBtn.Parent = tABIN
+Instance.new("UICorner", addTabBtn).CornerRadius = UDim.new(0, 6)
+
+-- MENU NGỮ CẢNH (Rename/Delete Popup)
+local contextMenu = Instance.new("Frame")
+contextMenu.Size = UDim2.new(0, 120, 0, 70)
+contextMenu.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+contextMenu.BorderSizePixel = 1
+contextMenu.Visible = false
+contextMenu.ZIndex = 10
+contextMenu.Parent = screenGui
+Instance.new("UICorner", contextMenu)
+
+local function createMenuBtn(name, color, pos)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, -10, 0, 25)
+    b.Position = UDim2.new(0, 5, 0, pos)
+    b.BackgroundColor3 = color
+    b.Text = name
+    b.TextColor3 = Color3.new(1,1,1)
+    b.TextSize = 12
+    b.Parent = contextMenu
+    Instance.new("UICorner", b)
+    return b
+end
+
+local renameBtn = createMenuBtn("Rename", Color3.fromRGB(80, 80, 150), 5)
+local deleteBtn = createMenuBtn("Delete", Color3.fromRGB(150, 50, 50), 35)
+
+-- HÀM CHÍNH
+local function saveAll()
+    if TabSystem.Tabs[TabSystem.CurrentTabIndex] then
+        TabSystem.Tabs[TabSystem.CurrentTabIndex].Content = inputSctipt.Text
+    end
+end
+
+local function createTabUI(index)
+    local data = TabSystem.Tabs[index]
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 110, 0, 32)
+    btn.BackgroundColor3 = (TabSystem.CurrentTabIndex == index) and TabSystem.ActiveTabColor or TabSystem.InactiveTabColor
+    btn.Text = data.Name
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextTruncate = Enum.TextTruncate.AtEnd
+    btn.Parent = tabScroll
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+
+    -- Chuyển Tab
+    btn.MouseButton1Click:Connect(function()
+        saveAll()
+        TabSystem.CurrentTabIndex = index
+        inputSctipt.Text = data.Content
+        for i, t in ipairs(TabSystem.Tabs) do
+            t.Button.BackgroundColor3 = (i == index) and TabSystem.ActiveTabColor or TabSystem.InactiveTabColor
+        end
+        contextMenu.Visible = false
+    end)
+
+    -- Mở Menu Rename/Delete (Chuột phải hoặc giữ)
+    btn.MouseButton2Click:Connect(function()
+        contextMenu.Position = UDim2.new(0, btn.AbsolutePosition.X, 0, btn.AbsolutePosition.Y + 35)
+        contextMenu.Visible = true
+        
+        -- Xử lý Rename
+        renameBtn.MouseButton1Click:Once(function()
+            contextMenu.Visible = false
+            logMessage("Nhập tên mới vào Editor và nhấn SAVE để Rename!", Colors.Warning)
+            -- Logic: Lấy text từ editor làm tên mới
+        end)
+
+        -- Xử lý Delete
+        deleteBtn.MouseButton1Click:Once(function()
+            if #TabSystem.Tabs > 1 then
+                if isfile and isfile(TabSystem.ConfigFolder.."/"..data.Name..".lua") then
+                    delfile(TabSystem.ConfigFolder.."/"..data.Name..".lua")
+                end
+                table.remove(TabSystem.Tabs, index)
+                btn:Destroy()
+                contextMenu.Visible = false
+                logMessage("Deleted Tab: "..data.Name, Colors.Error)
+            end
+        end)
+    end)
+    
+    return btn
+end
+
+local function addNewTab(name, content, skipSave)
+    local newIndex = #TabSystem.Tabs + 1
+    local tabData = {
+        Name = name or "Script " .. newIndex,
+        Content = content or "-- SM Engine v4.8",
+        Button = nil
+    }
+    table.insert(TabSystem.Tabs, tabData)
+    tabData.Button = createTabUI(newIndex)
+    
+    if not skipSave and writefile then
+        pcall(function() writefile(TabSystem.ConfigFolder.."/"..tabData.Name..".lua", tabData.Content) end)
+    end
+end
+
+-- ==========================================
+-- AUTO-LOAD TỪ WORKSPACE
+-- ==========================================
+local function loadWorkspaceFiles()
+    if listfiles then
+        local files = listfiles(TabSystem.ConfigFolder)
+        if #files > 0 then
+            for _, file in ipairs(files) do
+                if file:sub(-4) == ".lua" then
+                    local name = file:gsub(TabSystem.ConfigFolder.."/", ""):gsub(".lua", "")
+                    local content = readfile(file)
+                    addNewTab(name, content, true)
+                end
+            end
+        else
+            addNewTab("Main", "-- Welcome")
+        end
+    else
+        addNewTab("Main", "-- Executor not support listfiles")
+    end
+end
+
+addTabBtn.MouseButton1Click:Connect(function() addNewTab() end)
+
+-- Khởi chạy load file
+task.spawn(loadWorkspaceFiles)
+
+-- Tắt menu khi nhấn ra ngoài
+UserInputService.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 and contextMenu.Visible then
+        task.wait(0.1)
+        contextMenu.Visible = false
+    end
+end)
+
+logMessage("SM Engine v4.6 (-BETA-) Ready.", Colors.Text)
