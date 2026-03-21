@@ -58,6 +58,11 @@ local scripts = {
         Name = "SYSTEM_OPTIMIZER_PRO.lua",
         Url = "https://raw.githubusercontent.com/scriptmirroroffical/My-Script/main/SYSTEM_OPTIMIZER_PRO.lua",
         Description = "Unlock FPS and boost your experience"
+    },
+    {
+        Name = "hitbox_extender.lua",
+        Url = "https://raw.githubusercontent.com/scriptmirroroffical/My-Script/main/hitbox_extender.lua",
+        Description = "Extend players' hitbox"
     }
 }
 
