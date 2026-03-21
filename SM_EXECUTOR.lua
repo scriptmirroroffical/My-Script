@@ -525,7 +525,7 @@ end)
 handleScaling()
 
 -- ==========================================
--- SM ENGINE CORE v4.6 (-BETA-) - ADVANCED SANDBOX & FULL SCAN
+-- SM ENGINE CORE v4.7 (-BETA-) - ADVANCED SANDBOX & FULL SCAN
 -- ==========================================
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -626,7 +626,7 @@ local function logMessage(text: any, colorType: Color3?)
             end
         end)
     else
-        print(string.format("[SM v4.6] %s", tostring(text)))
+        print(string.format("[SM v4.7 BETA] %s", tostring(text)))
     end
 end
 
@@ -905,22 +905,6 @@ end
 -- 6. LÕI THỰC THI & QUÉT TỐI ƯU (V4.6 OPTIMIZED)
 -- ==========================================
 
--- Bảng lưu trữ tạm thời để tăng tốc thực thi
-local ScannedRemotes = {}
-
--- Hàm hỗ trợ lọc từ khóa (Optimization: sử dụng bảng băm nếu cần, nhưng ở đây dùng logic find là ổn)
-local function isVulnerable(name)
-    local n = name:lower()
-    for _, word in ipairs(TrapKeywords) do
-        if n:find(word) then return false, true end -- Là Trap
-    end
-    -- Kiểm tra dấu hiệu SS Backdoor
-    if n:find("run") or n:find("load") or n:find("exec") or n:find("script") or #n > 30 then
-        return true, false
-    end
-    return false, false
-end
-
 -- 1. XỬ LÝ ATTACH
 if textButton then
     textButton.MouseButton1Click:Connect(function()
@@ -949,46 +933,74 @@ if textButton then
     end)
 end
 
--- 2. QUÉT TOÀN BỘ GAME (FULL SCAN)
+local RunService = game:GetService("RunService")
+local ScannedRemotes = {} -- Danh sách các Remote đã xác minh thành công
+
+-- 1. HÀM THỰC THI (Hỗ trợ nhiều kiểu truyền tham số)
+local function runRemote(remote, code)
+    if not remote or not code then return end
+    pcall(function()
+        if remote:IsA("RemoteEvent") then
+            remote:FireServer(code) -- Kiểu trực tiếp
+            remote:FireServer(remote.Name, code) -- Kiểu kèm tên
+        elseif remote:IsA("RemoteFunction") then
+            task.spawn(function() remote:InvokeServer(code) end)
+        end
+    end)
+end
+
+-- 2. HÀM KIỂM TRA ĐỘ TIN CẬY (Né hệ thống Roblox để an toàn)
+local function isSystemRemote(remote)
+    local path = remote:GetFullName()
+    -- Chỉ né những thứ chắc chắn của Roblox/Chat/Admin để không bị Ban
+    if path:find("RobloxReplicatedStorage") or path:find("ChatEvents") or path:find("DefaultChat") then
+        return true
+    end
+    return false
+end
+
+-- 3. LOGIC QUÉT VÀ TEST MÙ (BLIND TEST)
 if textButton_2 then
     textButton_2.MouseButton1Click:Connect(function()
         if not EngineState.IsAttached then logMessage("Attach first!", Colors.Error) return end
         
-        logMessage("Deep Scan started...", Colors.Warning)
+        logMessage("Blind Scan started (Testing ALL Remotes)...", Colors.Warning)
         table.clear(ScannedRemotes)
-        local foundCount = 0
+        local verifiedCount = 0
         
         task.spawn(function()
             local allObjects = game:GetDescendants()
-            local total = #allObjects
             
             for i, item in ipairs(allObjects) do
-                -- Anti-Lag: Cứ mỗi 400 object thì nhường CPU 1 khung hình
-                if i % 400 == 0 then RunService.Heartbeat:Wait() end
+                -- Chống lag
+                if i % 300 == 0 then RunService.Heartbeat:Wait() end
                 
-                if item:IsA("RemoteEvent") or item:IsA("RemoteFunction") then
-                    local isVuln, isTrap = isVulnerable(item.Name)
+                if (item:IsA("RemoteEvent") or item:IsA("RemoteFunction")) and not isSystemRemote(item) then
                     
-                    if isTrap then
-                        logMessage("⚠️ TRAP: " .. item:GetFullName(), Colors.Error)
-                    elseif isVuln then
+                    -- TẠO MÃ TEST NGẪU NHIÊN
+                    local testId = "TEST_" .. math.random(1000, 9999)
+                    
+                    -- GỬI LỆNH THỬ NGHIỆM (Bất kể tên nó là gì: HEX, Rác, hay Tên giả)
+                    runRemote(item, "local m=Instance.new('Model', workspace); m.Name='"..testId.."'; task.wait(0.5); m:Destroy()")
+                    
+                    -- Đợi phản hồi cực ngắn để duy trì tốc độ quét
+                    task.wait(0.3) 
+                    
+                    if workspace:FindFirstChild(testId) then
+                        -- NẾU MODEL XUẤT HIỆN => ĐÂY LÀ BACKDOOR XỊN
                         table.insert(ScannedRemotes, item)
-                        logMessage("✅ Found: " .. item.Name, Colors.Success)
-                        foundCount = foundCount + 1
+                        verifiedCount = verifiedCount + 1
+                        logMessage("⭐ FOUND SS: " .. item.Name, Colors.Success)
+                        
+                        if eXECButton then
+                            eXECButton.Text = "READY (SS: " .. verifiedCount .. ")"
+                            eXECButton.BackgroundColor3 = Color3.fromRGB(0, 190, 0)
+                        end
                     end
                 end
             end
 
-            if foundCount > 0 then
-                EngineState.SSMode = true
-                if eXECButton then
-                    eXECButton.Text = "EXECUTE (SS: " .. foundCount .. ")"
-                    eXECButton.BackgroundColor3 = Colors.System
-                end
-                logMessage("Scan Finish. Found " .. foundCount .. " potential remotes.", Colors.Success)
-            else
-                logMessage("Scan Finish. No backdoors detected.", Colors.Warning)
-            end
+            logMessage("Scan Finish. Found " .. verifiedCount .. " functional remotes.", Colors.Success)
         end)
     end)
 end
@@ -1281,4 +1293,4 @@ task.spawn(function()
     end
 end)
 
-logMessage("SM Engine v4.6 (-Preview-) Ready.", Colors.Text)
+logMessage("SM Engine v4.7 (-BETA-) Ready.", Colors.Text)
