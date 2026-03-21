@@ -48,7 +48,7 @@ UIListLayout.Parent = PlayerList
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Size = UDim2.new(0.9, 0, 0, 40)
 ToggleBtn.Position = UDim2.new(0.05, 0, 0.85, 0)
-ToggleBtn.Text = "BẬT HACK"
+ToggleBtn.Text = "OFF"
 ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 127)
 ToggleBtn.TextColor3 = Color3.new(1, 1, 1)
 ToggleBtn.Font = Enum.Font.GothamBold
@@ -120,7 +120,7 @@ end
 
 ToggleBtn.MouseButton1Click:Connect(function()
     _G_Enabled = not _G_Enabled
-    ToggleBtn.Text = _G_Enabled and "TẮT HACK" or "BẬT HACK"
+    ToggleBtn.Text = _G_Enabled and "ON" or "OFF"
     ToggleBtn.BackgroundColor3 = _G_Enabled and Color3.fromRGB(200, 50, 50) or Color3.fromRGB(0, 170, 127)
     
     if not _G_Enabled then
