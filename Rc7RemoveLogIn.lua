@@ -99,7 +99,7 @@ open.Size = UDim2.new(0, 99, 0, 20)
 open.Text = "Open"
 open.TextColor3 = Color3.fromRGB(20, 212, 255)
 open.MouseButton1Down:connect(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/scriptmirroroffical/My-Script/Framework/FilteringEnabled.rc7"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/scriptmirroroffical/My-Script-for-pc/Framework/FilteringEnabled.rc7"))()
 end)
 
 roxploit.Name = "roxploit"
