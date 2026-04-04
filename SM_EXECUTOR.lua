@@ -386,19 +386,23 @@ obj41.BorderSizePixel = 0
 obj41.Parent = obj34
 
 --[[ 
-    SM ENGINE PRO CORE v6.0
+    SM ENGINE PRO CORE v6.5 (OPTIMIZED)
     TÍCH HỢP TRỰC TIẾP VÀO GUI OMNI-GOD
-    FIXED: performUltraScan nil, InputBegan ScreenGui errors
+    FIXED: Anti-Lag Deep Scan, Smooth Drag, Modernized Payloads
 ]]
 
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
 -- ==========================================
--- 1. HỆ THỐNG QUẢN LÝ TRẠNG THÁI (CORE STATE)
+-- 1. HỆ THỐNG QUẢN LÝ TRẠNG THÁI
 -- ==========================================
 local EngineState = {
     IsAttached = false,
     SSMode = false,
     TargetRemote = nil,
-    Version = "6.0 PRO",
+    Version = "6.5 PRO",
     Scanning = false
 }
 
@@ -411,31 +415,40 @@ local Colors = {
 }
 
 -- ==========================================
--- 2. ĐỊNH NGHĨA HÀM TIỆN ÍCH (CORE UTILS)
+-- 2. ĐỊNH NGHĨA HÀM TIỆN ÍCH
 -- ==========================================
 local function notify(title, msg, color)
-    -- Bạn có thể tùy biến thêm popup tại đây
-    print("[" .. title .. "]: " .. msg)
+    print(string.format("[%s]: %s", title, msg))
 end
 
--- Hàm kéo thả an toàn (Fix lỗi InputBegan trên ScreenGui)
+-- Tối ưu kéo thả: Mượt mà hơn, bắt chuẩn input
 local function makeDraggable(frame)
     if not frame or not frame:IsA("GuiObject") then return end
     
     local dragging, dragInput, dragStart, startPos
+    
     frame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
             startPos = frame.Position
+            
             input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+                if input.UserInputState == Enum.UserInputState.End then 
+                    dragging = false 
+                end
             end)
         end
     end)
     
-    game:GetService("UserInputService").InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
             local delta = input.Position - dragStart
             frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
@@ -445,24 +458,6 @@ end
 -- ==========================================
 -- 3. THUẬT TOÁN GHOST HUNTER (SCAN BACKDOOR)
 -- ==========================================
-local function isGhostBackdoor(obj)
-    if not (obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction")) then return false end
-    local path = obj:GetFullName():lower()
-    if path:find("chat") or path:find("voice") or path:find("appearance") then return false end
-
-    local parent = obj.Parent
-    if not parent then return false end
-
-    local suspectServices = {"JointsService", "TestService", "LogService", "Lighting"}
-    for _, srv in ipairs(suspectServices) do
-        if parent:IsA(srv) or obj:IsDescendantOf(game:GetService(srv)) then return true end
-    end
-    return false
-end
-
--- ==========================================
--- SIÊU LÕI QUÉT BACKDOOR (SM-DEEP-SCAN)
--- ==========================================
 
 local function ultraDeepScan()
     if EngineState.Scanning then return end
@@ -470,12 +465,11 @@ local function ultraDeepScan()
     
     -- Phản hồi giao diện
     obj30.Text = "ĐANG QUÉT SÂU..."
-    obj30.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
+    obj30.BackgroundColor3 = Colors.Warning
     EngineState.TargetRemote = nil
     
     local foundRemotes = {}
     
-    -- Danh sách các nơi backdoor hay ẩn nấp mà script thường bỏ qua
     local scanLocations = {
         game:GetService("ReplicatedStorage"),
         game:GetService("JointsService"),
@@ -485,34 +479,39 @@ local function ultraDeepScan()
     }
 
     task.spawn(function()
+        local scanCount = 0 -- Biến đếm chống lag
+        
         for _, location in ipairs(scanLocations) do
             for _, v in ipairs(location:GetDescendants()) do
+                scanCount += 1
+                -- Chống treo máy: Nhường luồng xử lý sau mỗi 500 object
+                if scanCount % 500 == 0 then task.wait() end 
+                
                 if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-                    local name = v.Name:lower()
-                    -- Thuật toán nhận diện backdoor của LALOL (Quét theo từ khóa và độ dài tên)
+                    local name = string.lower(v.Name)
+                    
                     if name:find("run") or name:find("exec") or name:find("load") or 
-                       name:find("serve") or name:find("remote") or #v.Name > 25 then
+                       name:find("serve") or name:find("remote") or #name > 25 then
                         
-                        -- Kiểm tra xem có phải bẫy (Trap) của Admin không
-                        if not name:find("check") and not name:find("admin") then
+                        -- Lọc bẫy Admin / Anti-Cheat
+                        if not name:find("check") and not name:find("admin") and not name:find("ban") then
                             table.insert(foundRemotes, v)
                         end
                     end
                 end
             end
-            task.wait() -- Tránh treo máy
         end
 
         if #foundRemotes > 0 then
             EngineState.TargetRemote = foundRemotes[1]
             EngineState.SSMode = true
-            obj26.Text = "THỰC THI (SS)" -- Chuyển sang chế độ Server Side
-            obj26.BackgroundColor3 = Color3.fromRGB(170, 85, 255)
+            obj26.Text = "THỰC THI (SS)"
+            obj26.BackgroundColor3 = Colors.SS
             obj30.Text = "TÌM THẤY: " .. #foundRemotes
-            obj30.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
+            obj30.BackgroundColor3 = Colors.Success
         else
             obj30.Text = "KHÔNG CÓ BACKDOOR"
-            obj30.BackgroundColor3 = Color3.fromRGB(255, 65, 65)
+            obj30.BackgroundColor3 = Colors.Error
             task.wait(2)
             obj30.Text = "Scan Backdoor"
             obj30.BackgroundColor3 = Color3.fromRGB(255, 115, 90)
@@ -521,17 +520,15 @@ local function ultraDeepScan()
     end)
 end
 
--- KẾT NỐI LẠI NÚT BẤM (Đảm bảo không bị lỗi NIL)
 obj30.MouseButton1Click:Connect(ultraDeepScan)
--- ==========================================
--- 4. KÍCH HOẠT LOGIC VÀO GUI CỦA BẠN
--- ==========================================
 
--- Kéo thả cho MainMenu (obj11) và Menu (obj22)
+-- ==========================================
+-- 4. KÍCH HOẠT LOGIC GUI
+-- ==========================================
 makeDraggable(obj11)
 makeDraggable(obj22)
 
--- Nút Chuyển Tab (Home / Executor)
+-- Nút Chuyển Tab
 obj17.MouseButton1Click:Connect(function()
     obj34.Visible = true
     obj24.Visible = false
@@ -542,18 +539,16 @@ obj20.MouseButton1Click:Connect(function()
     obj24.Visible = true
 end)
 
--- Nút Toggle GUI (obj7)
+-- Nút Toggle GUI (Hiệu ứng mượt)
 local isVisible = true
 obj7.MouseButton1Click:Connect(function()
     isVisible = not isVisible
     obj11.Visible = isVisible
     obj22.Visible = isVisible
-    -- Hiệu ứng nhấn
-    game:GetService("TweenService"):Create(obj3, TweenInfo.new(0.2), {BackgroundTransparency = isVisible and 0.4 or 0.8}):Play()
+    TweenService:Create(obj3, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {BackgroundTransparency = isVisible and 0.4 or 0.8}):Play()
 end)
 
-
--- Nút Reset Silent (obj28)
+-- Nút Reset Silent
 obj28.MouseButton1Click:Connect(function()
     EngineState.SSMode = false
     EngineState.TargetRemote = nil
@@ -564,59 +559,42 @@ obj28.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- BẢN FIX CUỐI CÙNG CHO NÚT EXECUTE (obj26)
+-- TỐI ƯU EXECUTE LOGIC
 -- ==========================================
 obj26.MouseButton1Click:Connect(function()
-    -- 1. Định nghĩa hàm log nội bộ để tránh lỗi NIL dòng 581
     local function safeLog(text, color)
-        -- Thử gọi hàm log toàn cục, nếu nil thì dùng warn/print thay thế
         local success = pcall(function()
-            if logMessage then 
-                logMessage(text, color) 
-            else
-                warn("[SM Engine]: " .. text)
-            end
+            if logMessage then logMessage(text, color) else warn("[SM Engine]: " .. text) end
         end)
         if not success then print("[SM Log]: " .. text) end
     end
 
-    -- 2. Kiểm tra đầu vào (obj32 là TextBox của bạn)
     if not obj32 or obj32.Text == "" then 
-        safeLog("TextBox trống hoặc không tìm thấy!", Colors.Error)
+        safeLog("TextBox trống!", Colors.Error)
         return 
     end
 
     local inputSource = obj32.Text
     local remote = EngineState.TargetRemote
 
-    -- 3. LOGIC THỰC THI
     if EngineState.SSMode and remote then
-        -- Chế độ Server-Side (SS)
         safeLog("Injecting SS Payloads...", Colors.Warning)
         
-        -- Làm sạch code để tránh lỗi ngoặc kép khi dùng require
-        local _, cleanCode = pcall(function() 
-            return inputSource:gsub('"', '\\"') 
-        end)
-        cleanCode = cleanCode or inputSource
-
-        -- Các kiểu Payload để bypass backdoor (như LALOL Hub)
+        local cleanCode = string.gsub(inputSource, '"', '\\"')
+        
+        -- Cập nhật dùng task.spawn thay vì spawn cũ
         local payloads = {
             inputSource, 
-            "spawn(function() " .. inputSource .. " end)",
-            [[require(666666).load("]] .. cleanCode .. [[")]], -- Kiểu require phổ biến
-            {["script"] = inputSource, ["type"] = "execute"}  -- Kiểu table nâng cao
+            "task.spawn(function() " .. inputSource .. " end)",
+            [[require(666666).load("]] .. cleanCode .. [[")]], 
+            {["script"] = inputSource, ["type"] = "execute"}
         }
 
         task.spawn(function()
             local anySuccess = false
-            for i, p in ipairs(payloads) do
-                local s, _ = pcall(function()
-                    if remote:IsA("RemoteEvent") then
-                        remote:FireServer(p)
-                    else
-                        remote:InvokeServer(p)
-                    end
+            for _, p in ipairs(payloads) do
+                local s = pcall(function()
+                    if remote:IsA("RemoteEvent") then remote:FireServer(p) else remote:InvokeServer(p) end
                 end)
                 if s then anySuccess = true end
             end
@@ -627,19 +605,14 @@ obj26.MouseButton1Click:Connect(function()
                 safeLog("SS Failed: Remote từ chối payload.", Colors.Error)
             end
         end)
-
     else
-        -- Chế độ Client-Side (Local)
-        local run = loadstring or getgenv().loadstring
+        local run = loadstring or getgenv and getgenv().loadstring
         if run then
             local f, err = run(inputSource)
             if f then 
                 local s, rErr = pcall(f)
-                if not s then 
-                    safeLog("Runtime Error: " .. tostring(rErr), Colors.Error) 
-                else
-                    safeLog("Local Executed.", Colors.Success)
-                end
+                if not s then safeLog("Runtime Error: " .. tostring(rErr), Colors.Error) 
+                else safeLog("Local Executed.", Colors.Success) end
             else 
                 safeLog("Syntax Error: " .. tostring(err), Colors.Error) 
             end
@@ -650,16 +623,16 @@ obj26.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- 5. HIỆU ỨNG VÀ KHỞI CHẠY (FINAL)
+-- 5. HIỆU ỨNG & KHỞI CHẠY
 -- ==========================================
 
--- Logo Rotation (obj3)
-local runService = game:GetService("RunService")
-local angle = 0
-runService.RenderStepped:Connect(function(dt)
-    angle = angle + 45 * dt
-    if obj3 then obj3.Rotation = angle end
-end)
+-- Logo Rotation (Tối ưu check object tồn tại)
+if obj3 then
+    local angle = 0
+    RunService.RenderStepped:Connect(function(dt)
+        angle = (angle + 45 * dt) % 360 -- Reset góc để tránh tràn số
+        obj3.Rotation = angle
+    end)
+end
 
--- Thông báo chào mừng
-notify("SM Engine", "Omni-God PRO Core v6.0 Loaded!", Colors.Success)
+notify("SM Engine", "Omni-God PRO Core v6.5 Loaded!", Colors.Success)
