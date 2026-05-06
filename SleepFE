@@ -1,6 +1,7 @@
 local lp = game:GetService("Players").LocalPlayer
 local char = lp.Character or lp.CharacterAdded:Wait()
 local lying = false
+local isMad = false -- Variable to control the "Mad" state
 
 -- --- PROFESSIONAL UI SETUP ---
 local ScreenGui = Instance.new("ScreenGui")
@@ -9,8 +10,8 @@ ScreenGui.Parent = game:GetService("CoreGui") -- Using CoreGui to persist
 ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 250, 0, 180)
-MainFrame.Position = UDim2.new(0.5, -125, 0.75, 0)
+MainFrame.Size = UDim2.new(0, 250, 0, 230) 
+MainFrame.Position = UDim2.new(0.5, -125, 0.75, -50)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -33,7 +34,144 @@ Title.Parent = MainFrame
 
 -- --- BUTTON GRID LAYOUT ---
 local GridFrame = Instance.new("Frame")
-GridFrame.Size = UDim2.new(0.9, 0, 0.45, 0)
+GridFrame.Size = UDim2.new(0.9, 0, 0.35, 0)
+GridFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
+GridFrame.BackgroundTransparency = 1
+GridFrame.Parent = MainFrame
+
+local UIGrid = Instance.new("UIGridLayout", GridFrame)
+UIGrid.CellSize = UDim2.new(0, 105, 0, 35)
+UIGrid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+-- --- ROTATION ANGLES FOR 'MAKE ME MAD' ---
+local rotations = {
+    CFrame.Angles(math.rad(-90), 0, 0), -- FRONT
+    CFrame.Angles(math.rad(90), 0, 0),  -- BACK
+    CFrame.Angles(0, 0, math.rad(90)),  -- LEFT
+    CFrame.Angles(0, 0, math.rad(-90))  -- RIGHT
+}
+
+-- --- FUNCTIONAL LOGIC ---
+local function applySleep(rotation)
+    isMad = false -- Disable mad state if a fixed posture is chosen
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not hum or not root then return end
+    
+    hum.PlatformStand = false
+    hum:SetStateEnabled(Enum.HumanoidStateType.GettingUp, true)
+    
+    task.wait(0.05)
+    
+    hum:SetStateEnabled(Enum.HumanoidStateType.GettingUp, false)
+    hum.PlatformStand = true
+    root.CFrame = root.CFrame * rotation
+    lying = true
+end
+
+local function standUp()
+    isMad = false -- Stop the Mad loop
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not hum or not root then return end
+    
+    hum.PlatformStand = false
+    hum:SetStateEnabled(Enum.HumanoidStateType.GettingUp, true)
+    hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+    lying = false
+end
+
+local function makeMeMad()
+    if isMad then return end -- Prevent multiple loops from running at the same time
+    isMad = true
+    
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not hum or not root then isMad = false return end
+    
+    hum.PlatformStand = true
+    hum:SetStateEnabled(Enum.HumanoidStateType.GettingUp, false)
+    lying = true
+    
+    task.spawn(function()
+        while isMad do
+            if not root or not root.Parent then break end
+            
+            -- Pick a random angle
+            local randomRot = rotations[math.random(1, #rotations)]
+            
+            -- Lock current Position and apply the new random angle
+            root.CFrame = CFrame.new(root.Position) * randomRot
+            
+            -- Light Fling Mechanics: 
+            -- Apply chaotic rotational velocity to fling others upon touch
+            root.AssemblyAngularVelocity = Vector3.new(math.random(-500, 500), math.random(-500, 500), math.random(-500, 500))
+            
+            -- Add slight X/Z movement for unpredictability, but force Y (vertical) to be negative so you don't fly away
+            root.AssemblyLinearVelocity = Vector3.new(math.random(-25, 25), -50, math.random(-25, 25))
+            
+            task.wait() -- Run as fast as the engine allows for smooth physics updates
+        end
+    end)
+end
+
+-- --- BUTTON CREATOR ---
+local function createButton(name, rotation, color)
+    local btn = Instance.new("TextButton")
+    btn.Text = name
+    btn.BackgroundColor3 = color or Color3.fromRGB(40, 40, 40)
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 12
+    btn.BorderSizePixel = 0
+    btn.Parent = GridFrame
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    
+    btn.MouseButton1Click:Connect(function()
+        applySleep(rotation)
+    end)
+end
+
+-- Create the 4 direction buttons
+createButton("FRONT (Lie)", rotations[1])
+createButton("BACK (Rest)", rotations[2])
+createButton("LEFT (Side)", rotations[3])
+createButton("RIGHT (Side)", rotations[4])
+
+-- --- MAKE ME MAD BUTTON ---
+local MadBtn = Instance.new("TextButton")
+MadBtn.Size = UDim2.new(0.9, 0, 0, 35)
+MadBtn.Position = UDim2.new(0.05, 0, 0.6, 0)
+MadBtn.Text = "MAKE ME MAD"
+MadBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 20) -- Standout orange color
+MadBtn.TextColor3 = Color3.new(1, 1, 1)
+MadBtn.Font = Enum.Font.GothamBold
+MadBtn.TextSize = 13
+MadBtn.Parent = MainFrame
+Instance.new("UICorner", MadBtn).CornerRadius = UDim.new(0, 6)
+
+MadBtn.MouseButton1Click:Connect(makeMeMad)
+
+-- --- RESET BUTTON ---
+local ResetBtn = Instance.new("TextButton")
+ResetBtn.Size = UDim2.new(0.9, 0, 0, 35)
+ResetBtn.Position = UDim2.new(0.05, 0, 0.8, 0)
+ResetBtn.Text = "WAKE UP / STAND"
+ResetBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+ResetBtn.TextColor3 = Color3.new(1, 1, 1)
+ResetBtn.Font = Enum.Font.GothamBold
+ResetBtn.TextSize = 13
+ResetBtn.Parent = MainFrame
+Instance.new("UICorner", ResetBtn).CornerRadius = UDim.new(0, 6)
+
+ResetBtn.MouseButton1Click:Connect(standUp)
+
+-- Character Auto-refresh
+lp.CharacterAdded:Connect(function(newChar)
+    char = newChar
+    lying = false
+    isMad = false
+end)
 GridFrame.Position = UDim2.new(0.05, 0, 0.25, 0)
 GridFrame.BackgroundTransparency = 1
 GridFrame.Parent = MainFrame
