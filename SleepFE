@@ -1,7 +1,3 @@
--- [OMNI-SLEEP PRO: SELECTION EDITION]
--- Author: son171020 | High-End Exploit UI
--- Features: Instant Directional Buttons (FE)
-
 local lp = game:GetService("Players").LocalPlayer
 local char = lp.Character or lp.CharacterAdded:Wait()
 local lying = false
@@ -28,7 +24,7 @@ UIStroke_Main.Thickness = 2
 
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 35)
-Title.Text = "OMNI-SLEEP PRO v3"
+Title.Text = "Sleep FE by ItsMynaXa"
 Title.TextColor3 = Color3.new(1, 1, 1)
 Title.BackgroundTransparency = 1
 Title.Font = Enum.Font.GothamBold
