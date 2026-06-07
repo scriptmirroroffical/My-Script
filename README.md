@@ -1,2 +1,1 @@
-All of these scripts are optimized for both PC and mobile
-Notice:My computer is broken...
+All of these scripts are optimized for both PC and mobile.
