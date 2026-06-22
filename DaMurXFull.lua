@@ -7,7 +7,7 @@ local LocalPlayer = Players.LocalPlayer
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "ESP_System_Optimized"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+screenGui.Parent = game.CoreGui
 
 local function makeDraggable(guiObject)
     -- Đảm bảo đây là UI
