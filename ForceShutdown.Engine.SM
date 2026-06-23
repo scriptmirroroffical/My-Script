@@ -1,0 +1,141 @@
+local TweenService = game:GetService("TweenService")
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game.CoreGui
+
+local Massage = Instance.new("Frame")
+Massage.Name = "Massage"
+Massage.Size = UDim2.new(0.207367197, 0, 0.144965276, 0)
+Massage.Position = UDim2.new(0.792486072, 0, 0.855034709, 0)
+Massage.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
+Massage.BackgroundTransparency = 0
+Massage.Visible = true
+Massage.ZIndex = 999
+Massage.BorderSizePixel = 0
+Massage.ClipsDescendants = false
+Massage.Parent = ScreenGui
+
+local UICorner99 = Instance.new("UICorner")
+UICorner99.Name = "UICorner99"
+UICorner99.Parent = Massage
+
+local ImageLabel99 = Instance.new("ImageLabel")
+ImageLabel99.Name = "ImageLabel99"
+ImageLabel99.Size = UDim2.new(0.0600240156, 0, 0.144508675, 0)
+ImageLabel99.Position = UDim2.new(0.0192076825, 0, 0.0433526002, 0)
+ImageLabel99.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ImageLabel99.BackgroundTransparency = 0
+ImageLabel99.Image = "rbxassetid://88774721887954"
+ImageLabel99.ImageTransparency = 0
+ImageLabel99.Visible = true
+ImageLabel99.ZIndex = 1000
+ImageLabel99.BorderSizePixel = 0
+ImageLabel99.ClipsDescendants = false
+ImageLabel99.Parent = Massage
+
+local UICorner = Instance.new("UICorner")
+UICorner.Name = "UICorner"
+UICorner.Parent = ImageLabel99
+
+local TextLabel99 = Instance.new("TextLabel")
+TextLabel99.Name = "TextLabel99"
+TextLabel99.Size = UDim2.new(0.409947485, 0, 0.144508675, 0)
+TextLabel99.Position = UDim2.new(0.100007206, 0, 0.0433525033, 0)
+TextLabel99.Text = "SM Executor Notice"
+TextLabel99.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+TextLabel99.BackgroundTransparency = 1
+TextLabel99.TextTransparency = 0
+TextLabel99.Visible = true
+TextLabel99.ZIndex = 1000
+TextLabel99.FontFace = Font.new("rbxasset://fonts/families/Fondamento.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+TextLabel99.TextScaled = true
+TextLabel99.TextSize = 14
+TextLabel99.TextColor3 = Color3.fromRGB(0, 0, 0)
+TextLabel99.BorderSizePixel = 0
+TextLabel99.TextXAlignment = Enum.TextXAlignment.Left
+TextLabel99.TextYAlignment = Enum.TextYAlignment.Center
+TextLabel99.TextWrapped = true
+TextLabel99.ClipsDescendants = false
+TextLabel99.Parent = Massage
+
+local MassageContent = Instance.new("TextLabel")
+MassageContent.Name = "MassageContent"
+MassageContent.Size = UDim2.new(1, 0, 0.814371228, 0)
+MassageContent.Position = UDim2.new(0, 0, 0.191616774, 0)
+MassageContent.Text = "<Massage-Content>"
+MassageContent.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+MassageContent.BackgroundTransparency = 1
+MassageContent.TextTransparency = 0
+MassageContent.Visible = true
+MassageContent.ZIndex = 1000
+MassageContent.FontFace = Font.new("rbxasset://fonts/families/Kalam.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+MassageContent.Font = Enum.Font.Kalam
+MassageContent.TextScaled = true
+MassageContent.TextColor3 = Color3.fromRGB(0, 0, 0)
+MassageContent.BorderSizePixel = 0
+MassageContent.TextXAlignment = Enum.TextXAlignment.Left
+MassageContent.TextYAlignment = Enum.TextYAlignment.Top
+MassageContent.TextWrapped = true
+MassageContent.ClipsDescendants = false
+MassageContent.Parent = Massage
+
+local NoticeConfig = {
+    Position_Visible = UDim2.new(0.792, 0, 0.855, 0), 
+    Position_Hidden = UDim2.new(0.792, 0, 1.2, 0),   
+    DefaultTime = 2.5,
+    Queue = {},
+    IsProcessing = false
+}
+
+-- 2. HÀM XỬ LÝ QUY TRÌNH HIỆN CHỮ
+local function processNoticeQueue()
+    if #NoticeConfig.Queue == 0 or NoticeConfig.IsProcessing then return end
+    
+    local frame = Massage
+    local content = MassageContent
+
+    if not frame or not content then return end
+
+    NoticeConfig.IsProcessing = true
+    local data = table.remove(NoticeConfig.Queue, 1)
+
+    -- CÀI ĐẶT THUỘC TÍNH QUAN TRỌNG (ÉP HIỆN CHỮ)
+    content.Text = "" -- Reset chữ cũ
+    content.Text = tostring(data.Text)
+    content.TextTransparency = 0
+    content.TextStrokeTransparency = 0.5 -- Thêm viền nhẹ cho chữ nổi bật
+    
+    frame.Visible = true
+    frame.Position = NoticeConfig.Position_Hidden
+
+    -- Animation trượt lên
+    local tweenIn = TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Position = NoticeConfig.Position_Visible
+    })
+    
+    tweenIn:Play()
+    task.wait(0.6 + data.Duration)
+
+    -- Animation trượt xuống
+    local tweenOut = TweenService:Create(frame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+        Position = NoticeConfig.Position_Hidden
+    })
+    
+    tweenOut:Play()
+    task.wait(0.5)
+    
+    frame.Visible = false
+    NoticeConfig.IsProcessing = false
+    processNoticeQueue()
+end
+
+-- 3. HÀM GỌI NOTIFY CHUẨN
+local function notify(text, color, duration)
+    table.insert(NoticeConfig.Queue, {
+        Text = text,
+        Color = color or Color3.fromRGB(255, 255, 255),
+        Duration = duration or NoticeConfig.DefaultTime
+    })
+    task.spawn(processNoticeQueue)
+end
+notify("f0rCe dEstR0y...")
