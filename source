@@ -40,8 +40,8 @@ local scripts = {
         Description = "Works only for The Dank Murderer X, shows all roles/jobs in it."
     },
     {
-        Name = "God_Mode.lua",
-        Url = "https://raw.githubusercontent.com/scriptmirroroffical/My-Script-for-pc/main/God_Mode.lua",
+        Name = "God_ModeV1.lua",
+        Url = "https://raw.githubusercontent.com/scriptmirroroffical/My-Script-for-pc/main/God_ModeV1.lua",
         Description = "It is a beta version."
     },
     {
