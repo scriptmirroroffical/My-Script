@@ -1,0 +1,350 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+local Gui = Instance.new("ScreenGui", game.CoreGui)
+Gui.Name = "HitboxExpanderV2"
+
+local Main = Instance.new("Frame", Gui)
+Main.Size = UDim2.new(0, 220, 0, 340)
+Main.Position = UDim2.new(0.5, -110, 0.5, -170)
+Main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Main.BorderSizePixel = 0
+Main.Active = true
+Main.Draggable = true
+
+local UICorner = Instance.new("UICorner", Main)
+UICorner.CornerRadius = UDim.new(0, 8)
+
+local TitleBar = Instance.new("Frame", Main)
+TitleBar.Size = UDim2.new(1, 0, 0, 35)
+TitleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+TitleBar.BorderSizePixel = 0
+local UICornerTitle = Instance.new("UICorner", TitleBar)
+UICornerTitle.CornerRadius = UDim.new(0, 8)
+
+local Title = Instance.new("TextLabel", TitleBar)
+Title.Size = UDim2.new(1, -70, 1, 0)
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.BackgroundTransparency = 1
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Text = "Hitbox Expander By ItsMynaX"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 13
+Title.TextXAlignment = Enum.TextXAlignment.Left
+
+local MinimizeBtn = Instance.new("TextButton", TitleBar)
+MinimizeBtn.Size = UDim2.new(0, 26, 0, 26)
+MinimizeBtn.Position = UDim2.new(1, -30, 0, 4)
+MinimizeBtn.Text = "—"
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeBtn.Font = Enum.Font.GothamBold
+MinimizeBtn.TextSize = 18
+local MinimizeCorner = Instance.new("UICorner", MinimizeBtn)
+MinimizeCorner.CornerRadius = UDim.new(0, 6)
+
+local QuickToggleBtn = Instance.new("TextButton", TitleBar)
+QuickToggleBtn.Size = UDim2.new(0, 26, 0, 26)
+QuickToggleBtn.Position = UDim2.new(1, -62, 0, 4)
+QuickToggleBtn.Text = "⚡"
+QuickToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 120)
+QuickToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+QuickToggleBtn.Font = Enum.Font.GothamBold
+QuickToggleBtn.TextSize = 14
+QuickToggleBtn.Visible = false
+local QuickCorner = Instance.new("UICorner", QuickToggleBtn)
+QuickCorner.CornerRadius = UDim.new(0, 6)
+
+local ContentFrame = Instance.new("Frame", Main)
+ContentFrame.Size = UDim2.new(1, -16, 1, -45)
+ContentFrame.Position = UDim2.new(0, 8, 0, 40)
+ContentFrame.BackgroundTransparency = 1
+
+local ToggleBtn = Instance.new("TextButton", ContentFrame)
+ToggleBtn.Size = UDim2.new(1, 0, 0, 36)
+ToggleBtn.Text = "OFF"
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 120)
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.TextSize = 16
+local ToggleCorner = Instance.new("UICorner", ToggleBtn)
+ToggleCorner.CornerRadius = UDim.new(0, 8)
+
+local SizeFrame = Instance.new("Frame", ContentFrame)
+SizeFrame.Size = UDim2.new(1, 0, 0, 72)
+SizeFrame.Position = UDim2.new(0, 0, 0, 44)
+SizeFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+local SizeCorner = Instance.new("UICorner", SizeFrame)
+SizeCorner.CornerRadius = UDim.new(0, 8)
+
+local SizeLabel = Instance.new("TextLabel", SizeFrame)
+SizeLabel.Size = UDim2.new(1, 0, 0, 18)
+SizeLabel.Position = UDim2.new(0, 10, 0, 8)
+SizeLabel.BackgroundTransparency = 1
+SizeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+SizeLabel.Text = "Hitbox Size"
+SizeLabel.Font = Enum.Font.Gotham
+SizeLabel.TextSize = 12
+SizeLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local SizeSlider = Instance.new("TextBox", SizeFrame)
+SizeSlider.Size = UDim2.new(1, -20, 0, 24)
+SizeSlider.Position = UDim2.new(0, 10, 0, 32)
+SizeSlider.Text = "20"
+SizeSlider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+SizeSlider.TextColor3 = Color3.fromRGB(255, 255, 255)
+SizeSlider.Font = Enum.Font.Gotham
+SizeSlider.TextSize = 13
+local SliderCorner = Instance.new("UICorner", SizeSlider)
+SliderCorner.CornerRadius = UDim.new(0, 4)
+
+local AlertLabel = Instance.new("TextLabel", SizeFrame)
+AlertLabel.Size = UDim2.new(1, -20, 0, 18)
+AlertLabel.Position = UDim2.new(0, 10, 0, 58)
+AlertLabel.BackgroundTransparency = 1
+AlertLabel.TextColor3 = Color3.fromRGB(255, 200, 0)
+AlertLabel.Text = ""
+AlertLabel.Font = Enum.Font.Gotham
+AlertLabel.TextSize = 11
+AlertLabel.TextXAlignment = Enum.TextXAlignment.Left
+AlertLabel.Visible = false
+
+local PlayerLabel = Instance.new("TextLabel", ContentFrame)
+PlayerLabel.Size = UDim2.new(1, 0, 0, 18)
+PlayerLabel.Position = UDim2.new(0, 0, 0, 124)
+PlayerLabel.BackgroundTransparency = 1
+PlayerLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+PlayerLabel.Text = "Target Player"
+PlayerLabel.Font = Enum.Font.Gotham
+PlayerLabel.TextSize = 12
+PlayerLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local PlayerList = Instance.new("ScrollingFrame", ContentFrame)
+PlayerList.Size = UDim2.new(1, 0, 1, -150)
+PlayerList.Position = UDim2.new(0, 0, 0, 148)
+PlayerList.CanvasSize = UDim2.new(0, 0, 0, 0)
+PlayerList.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+PlayerList.ScrollBarThickness = 5
+PlayerList.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
+local ListCorner = Instance.new("UICorner", PlayerList)
+ListCorner.CornerRadius = UDim.new(0, 8)
+
+local UIListLayout = Instance.new("UIListLayout", PlayerList)
+UIListLayout.Padding = UDim.new(0, 3)
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local _G_Enabled = false
+local SelectedPlayer = "Tất cả"
+local currentSize = 20
+local originalSizes = {}
+local targets = {}
+local frameCounter = 0
+local FRAME_SKIP = 3
+local WARN_THRESHOLD = 500
+
+local function rebuildTargets()
+    table.clear(targets)
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and (SelectedPlayer == "Tất cả" or SelectedPlayer == player.Name) then
+            table.insert(targets, player)
+        end
+    end
+end
+
+local function safeApplySize(player)
+    local success, err = pcall(function()
+        local char = player.Character
+        if not char then return end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+        if not originalSizes[player] then
+            originalSizes[player] = root.Size
+        end
+        local newSize = Vector3.new(currentSize, currentSize, currentSize)
+        if root.Size ~= newSize then
+            root.Size = newSize
+        end
+    end)
+    if not success then
+        warn("ApplySize failed for " .. player.Name .. ": " .. tostring(err))
+    end
+end
+
+local function safeResetPlayer(player)
+    local success, err = pcall(function()
+        local char = player.Character
+        if not char then return end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+        if originalSizes[player] then
+            root.Size = originalSizes[player]
+            originalSizes[player] = nil
+        end
+    end)
+    if not success then
+        warn("ResetSize failed for " .. player.Name .. ": " .. tostring(err))
+    end
+end
+
+local heartbeatConnection
+
+local function startHeartbeat()
+    if heartbeatConnection then return end
+    heartbeatConnection = RunService.Heartbeat:Connect(function()
+        frameCounter = frameCounter + 1
+        if frameCounter % FRAME_SKIP ~= 0 then return end
+        for _, player in ipairs(targets) do
+            safeApplySize(player)
+        end
+    end)
+end
+
+local function stopHeartbeat()
+    if heartbeatConnection then
+        heartbeatConnection:Disconnect()
+        heartbeatConnection = nil
+    end
+end
+
+local function updateState()
+    if _G_Enabled then
+        rebuildTargets()
+        startHeartbeat()
+    else
+        stopHeartbeat()
+        for _, player in ipairs(targets) do
+            safeResetPlayer(player)
+        end
+        table.clear(targets)
+    end
+end
+
+local function updateToggleVisuals()
+    ToggleBtn.Text = _G_Enabled and "ON" or "OFF"
+    ToggleBtn.BackgroundColor3 = _G_Enabled and Color3.fromRGB(220, 50, 50) or Color3.fromRGB(0, 170, 120)
+    QuickToggleBtn.BackgroundColor3 = ToggleBtn.BackgroundColor3
+end
+
+local function updateAlert(value)
+    if value > WARN_THRESHOLD then
+        AlertLabel.Text = "⚠️ Large size may cause lag!"
+        AlertLabel.Visible = true
+    else
+        AlertLabel.Text = ""
+        AlertLabel.Visible = false
+    end
+end
+
+local function setSizeManually(val)
+    val = tonumber(val)
+    if not val then return end
+    val = math.max(1, val)
+    currentSize = val
+    SizeSlider.Text = tostring(val)
+    updateAlert(val)
+    if _G_Enabled then
+        for _, player in ipairs(targets) do
+            safeApplySize(player)
+        end
+    end
+end
+
+SizeSlider.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        setSizeManually(SizeSlider.Text)
+    end
+end)
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    _G_Enabled = not _G_Enabled
+    updateToggleVisuals()
+    updateState()
+end)
+
+QuickToggleBtn.MouseButton1Click:Connect(function()
+    _G_Enabled = not _G_Enabled
+    updateToggleVisuals()
+    updateState()
+end)
+
+local minimized = false
+MinimizeBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        ContentFrame.Visible = false
+        QuickToggleBtn.Visible = true
+        Main.Size = UDim2.new(0, 220, 0, 40)
+    else
+        ContentFrame.Visible = true
+        QuickToggleBtn.Visible = false
+        Main.Size = UDim2.new(0, 220, 0, 340)
+    end
+end)
+
+local function RefreshList()
+    for _, child in ipairs(PlayerList:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+    local function createEntry(name)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1, -8, 0, 26)
+        btn.Text = name
+        btn.BackgroundColor3 = (SelectedPlayer == name) and Color3.fromRGB(0, 140, 255) or Color3.fromRGB(45, 45, 45)
+        btn.TextColor3 = Color3.new(1, 1, 1)
+        btn.Font = Enum.Font.Gotham
+        btn.TextSize = 12
+        btn.Parent = PlayerList
+        local BtnCorner = Instance.new("UICorner", btn)
+        BtnCorner.CornerRadius = UDim.new(0, 6)
+        btn.MouseButton1Click:Connect(function()
+            SelectedPlayer = name
+            RefreshList()
+            if _G_Enabled then
+                for _, player in ipairs(targets) do
+                    safeResetPlayer(player)
+                end
+                rebuildTargets()
+                for _, player in ipairs(targets) do
+                    safeApplySize(player)
+                end
+            end
+        end)
+    end
+    createEntry("Tất cả")
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            createEntry(p.Name)
+        end
+    end
+    local buttonCount = 0
+    for _ in ipairs(PlayerList:GetChildren()) do buttonCount = buttonCount + 1 end
+    PlayerList.CanvasSize = UDim2.new(0, 0, 0, buttonCount * 29 + 6)
+end
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function(character)
+        if not _G_Enabled then return end
+        if SelectedPlayer == "Tất cả" or SelectedPlayer == player.Name then
+            if not table.find(targets, player) then
+                table.insert(targets, player)
+            end
+            safeApplySize(player)
+        end
+    end)
+    RefreshList()
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    safeResetPlayer(player)
+    local idx = table.find(targets, player)
+    if idx then
+        table.remove(targets, idx)
+    end
+    RefreshList()
+end)
+
+RefreshList()
