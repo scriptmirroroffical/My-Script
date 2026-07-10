@@ -1,39 +1,170 @@
--- [OMNI-GOD CORE GENERATED]
--- Author: son171020
--- Mode: Smart Relay (_G.OmniStorage)
 local _STORAGE = _G.OmniStorage or {}
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
 
 local ScreenGui = Instance.new("ScreenGui")
 _STORAGE["ScreenGui"] = ScreenGui
-ScreenGui.Name = "ScreenGui"
-ScreenGui.Parent = game:GetService('Players').LocalPlayer:WaitForChild('PlayerGui')
+ScreenGui.Name = "ESP_UI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local Frame = Instance.new("Frame")
 _STORAGE["Frame"] = Frame
 Frame.Name = "Frame"
-Frame.Size = UDim2.new(0, 84, 0, 40)
-Frame.Position = UDim2.new(0.408570617, 0, 0.138888896, 0)
-Frame.BackgroundColor3 = Color3.fromRGB(156, 156, 156)
-Frame.BackgroundTransparency = 0.5
+Frame.Size = UDim2.new(0, 80, 0, 36)
+Frame.Position = UDim2.new(0.42, 0, 0.15, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+Frame.BackgroundTransparency = 0.3
 Frame.Visible = true
-Frame.ZIndex = 1
 Frame.BorderSizePixel = 0
-Frame.ClipsDescendants = false
-Frame.Parent = _STORAGE["ScreenGui"] or ScreenGui
+Instance.new("UICorner", Frame).CornerRadius = UDim.new(0.1, 0)
+Instance.new("UIStroke", Frame).Color = Color3.fromRGB(0, 200, 255)
+Frame.Parent = ScreenGui
 
 local TextButton = Instance.new("TextButton")
 _STORAGE["TextButton"] = TextButton
-TextButton.Name = "TextButton"
-TextButton.Size = UDim2.new(0, 72, 0, 32)
-TextButton.Position = UDim2.new(0.0660211444, 0, 0.0811073333, 0)
-TextButton.Text = "ESP"
+TextButton.Name = "Toggle"
+TextButton.Size = UDim2.new(0, 68, 0, 28)
+TextButton.Position = UDim2.new(0.075, 0, 0.11, 0)
+TextButton.Text = "ESP OFF"
 TextButton.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
 TextButton.BackgroundTransparency = 0
-TextButton.TextTransparency = 0
-TextButton.Visible = true
-TextButton.ZIndex = 1
-TextButton.FontFace = Font.new("rbxasset://fonts/families/SourceSansPro.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
-TextButton.Font = Enum.Font.SourceSans
+TextButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+TextButton.Font = Enum.Font.GothamBold
+TextButton.TextScaled = true
+TextButton.BorderSizePixel = 0
+Instance.new("UICorner", TextButton).CornerRadius = UDim.new(0.15, 0)
+TextButton.Parent = Frame
+
+local function makeDraggable(gui)
+    local dragging = false
+    local dragInput = nil
+    local dragStart = nil
+    local startPos = nil
+    
+    local function update(input)
+        local delta = input.Position - dragStart
+        gui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+    
+    gui.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = gui.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    gui.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    
+    RunService.RenderStepped:Connect(function()
+        if dragging and dragInput then
+            update(dragInput)
+        end
+    end)
+end
+makeDraggable(Frame)
+
+local ESP_SETTINGS = {
+    Enabled = false,
+    FillTransparency = 0.4,
+    OutlineTransparency = 0,
+}
+
+local function CreateESP(player)
+    local function ApplyESP(character)
+        local Highlight = Instance.new("Highlight")
+        Highlight.Name = "OmniHL"
+        Highlight.Parent = character
+        Highlight.FillTransparency = ESP_SETTINGS.FillTransparency
+        Highlight.OutlineTransparency = ESP_SETTINGS.OutlineTransparency
+        Highlight.Adornee = character
+        Highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        
+        local Billboard = Instance.new("BillboardGui")
+        Billboard.Name = "OmniTag"
+        Billboard.Size = UDim2.new(0, 120, 0, 28)
+        Billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+        Billboard.AlwaysOnTop = true
+        Billboard.Parent = character:WaitForChild("HumanoidRootPart")
+        
+        local TextLabel = Instance.new("TextLabel")
+        TextLabel.Size = UDim2.new(1, 0, 1, 0)
+        TextLabel.BackgroundTransparency = 1
+        TextLabel.TextStrokeTransparency = 0
+        TextLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        TextLabel.Font = Enum.Font.GothamMedium
+        TextLabel.TextSize = 11
+        TextLabel.TextScaled = true
+        TextLabel.Parent = Billboard
+        
+        local Connection
+        Connection = RunService.RenderStepped:Connect(function()
+            if character and character.Parent and player.Parent then
+                local IsEnabled = ESP_SETTINGS.Enabled and player ~= LocalPlayer
+                Highlight.Enabled = IsEnabled
+                Billboard.Enabled = IsEnabled
+                
+                if IsEnabled then
+                    local teamColor = player.TeamColor.Color or Color3.fromRGB(255, 255, 255)
+                    Highlight.FillColor = teamColor
+                    Highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                    
+                    local hrp = character:FindFirstChild("HumanoidRootPart")
+                    local dist = "?"
+                    if hrp and LocalPlayer.Character then
+                        local lhrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                        if lhrp then
+                            dist = math.floor((lhrp.Position - hrp.Position).Magnitude)
+                        end
+                    end
+                    TextLabel.Text = player.Name .. "\n" .. dist .. "m"
+                    TextLabel.TextColor3 = teamColor
+                end
+            else
+                Connection:Disconnect()
+            end
+        end)
+    end
+    
+    if player.Character then ApplyESP(player.Character) end
+    player.CharacterAdded:Connect(ApplyESP)
+end
+
+for _, p in pairs(Players:GetPlayers()) do 
+    if p ~= LocalPlayer then
+        CreateESP(p) 
+    end
+end
+Players.PlayerAdded:Connect(function(p)
+    if p ~= LocalPlayer then
+        CreateESP(p)
+    end
+end)
+
+local ToggleBtn = _STORAGE["TextButton"]
+local IsOn = false
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    IsOn = not IsOn
+    ESP_SETTINGS.Enabled = IsOn
+    ToggleBtn.Text = IsOn and "ESP ON" or "ESP OFF"
+    ToggleBtn.BackgroundColor3 = IsOn and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(0, 255, 255)
+end)
+
+_G.OmniStorage = _STORAGE
 TextButton.TextScaled = true
 TextButton.TextSize = 14
 TextButton.TextColor3 = Color3.fromRGB(0, 0, 0)
