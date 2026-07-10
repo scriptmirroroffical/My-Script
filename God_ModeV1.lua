@@ -3,37 +3,245 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
-local CollectionService = game:GetService("CollectionService")
 
 local player = Players.LocalPlayer
 local active = false
-local bypassLevel = 2 
+local bypassLevel = 2
 local connections = {}
-local targetRemote = nil 
 
--- Bảo vệ UI
 local targetGui = pcall(function() return CoreGui.Name end) and CoreGui or player:WaitForChild("PlayerGui")
 if targetGui:FindFirstChild("OmniGodHub") then targetGui.OmniGodHub:Destroy() end
 
------------------------------------------------------------
--- 1. TỐI ƯU HÓA GHOST SCAN (PHIÊN BẢN TỐC ĐỘ CAO)
------------------------------------------------------------
-local function GhostScanSS(logCallback)
-    -- Chỉ quét các Service có khả năng chứa Backdoor cao nhất
-    local targetsToScan = {
-        game:GetService("ReplicatedStorage"),
-        game:GetService("StarterGui"),
-        game:GetService("Workspace"),
-        player:WaitForChild("PlayerGui")
-    }
-    
-    local verifyToken = "OMNI_" .. math.random(1000, 9999)
-    local keywords = {"defaultserver", "kohl", "admin", "remote", "control", "main", "execute", "v3rm"}
-    local payload = "local p = Instance.new('Part', workspace) p.Name = '" .. verifyToken .. "' p.Transparency = 1 task.wait(0.5) p:Destroy()"
+local function makeDraggable(gui)
+    local dragging = false
+    local dragInput = nil
+    local dragStart = nil
+    local startPos = nil
+    gui.Active = true
+    gui.Selectable = true
+    gui.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = gui.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    gui.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    RunService.RenderStepped:Connect(function()
+        if dragging and dragInput then
+            local delta = dragInput.Position - dragStart
+            gui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
 
-    for _, service in ipairs(targetsToScan) do
-        if targetRemote then break end
-        local objects = service:GetDescendants()
+local function sendNotification(text, color)
+    if not targetGui then return end
+    local notif = Instance.new("TextLabel")
+    notif.Size = UDim2.new(0.25, 0, 0.04, 0)
+    notif.Position = UDim2.new(0.375, 0, 0.85, 0)
+    notif.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    notif.BackgroundTransparency = 0.4
+    notif.TextColor3 = color or Color3.fromRGB(255, 255, 255)
+    notif.Text = text
+    notif.Font = Enum.Font.GothamBold
+    notif.TextScaled = true
+    notif.TextTransparency = 0
+    notif.Parent = targetGui
+    Instance.new("UICorner", notif).CornerRadius = UDim.new(0.1, 0)
+    task.delay(1.5, function()
+        local fade = TweenService:Create(notif, TweenInfo.new(0.4), {BackgroundTransparency = 1, TextTransparency = 1})
+        fade:Play()
+        fade.Completed:Wait()
+        notif:Destroy()
+    end)
+end
+
+local function ApplyGodMode(char)
+    for _, c in pairs(connections) do 
+        if c then 
+            c:Disconnect() 
+        end 
+    end
+    table.clear(connections)
+
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not hum or not root then return end
+
+    if bypassLevel == 3 then
+        local oldHum = hum
+        local newHum = oldHum:Clone()
+        newHum.Parent = char
+        oldHum:Destroy()
+        hum = newHum
+        workspace.CurrentCamera.CameraSubject = hum
+        
+        local animate = char:FindFirstChild("Animate")
+        if animate then
+            animate.Disabled = true
+            task.wait(0.1)
+            animate.Disabled = false
+        end
+    end
+
+    if not char:FindFirstChild("OmniHL") then
+        local hl = Instance.new("Highlight", char)
+        hl.Name = "OmniHL"
+        hl.FillColor = Color3.fromRGB(0, 255, 255)
+        hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+        hl.FillTransparency = 0.6
+        hl.OutlineTransparency = 0
+    end
+
+    hum.MaxHealth = math.huge
+    hum.Health = math.huge
+    hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+
+    local mainLoop = RunService.Heartbeat:Connect(function()
+        if not active or not hum or not root then return end
+        hum.Health = math.huge
+        
+        if bypassLevel >= 2 then
+            for _, p in pairs(char:GetChildren()) do
+                if p:IsA("BasePart") then 
+                    p.CanTouch = false 
+                    p.Massless = true
+                end
+            end
+        end
+
+        if root.Position.Y < -450 then
+            root.Velocity = Vector3.new(0, 0, 0)
+            root.CFrame = CFrame.new(root.Position.X, 200, root.Position.Z)
+        end
+    end)
+    table.insert(connections, mainLoop)
+
+    local jumpConn = UserInputService.JumpRequest:Connect(function()
+        if active and hum then
+            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end)
+    table.insert(connections, jumpConn)
+end
+
+local function RestoreNormal(char)
+    for _, c in pairs(connections) do 
+        if c then 
+            c:Disconnect() 
+        end 
+    end
+    table.clear(connections)
+
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.MaxHealth = 100
+        hum.Health = 100
+        hum:SetStateEnabled(Enum.HumanoidStateType.Dead, true)
+    end
+    
+    if char:FindFirstChild("OmniHL") then 
+        char.OmniHL:Destroy() 
+    end
+    
+    for _, p in pairs(char:GetDescendants()) do
+        if p:IsA("BasePart") then 
+            p.CanTouch = true 
+        end
+    end
+end
+
+local sg = Instance.new("ScreenGui", targetGui)
+sg.Name = "OmniGodHub"
+sg.ResetOnSpawn = false
+
+local main = Instance.new("Frame", sg)
+main.Size = UDim2.new(0, 200, 0, 170)
+main.Position = UDim2.new(0.5, -100, 0.35, 0)
+main.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+main.BackgroundTransparency = 0.1
+Instance.new("UICorner", main).CornerRadius = UDim.new(0.05, 0)
+Instance.new("UIStroke", main).Color = Color3.fromRGB(0, 200, 255)
+makeDraggable(main)
+
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Text = "OMNI-GOD"
+title.TextColor3 = Color3.fromRGB(0, 200, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.BackgroundTransparency = 1
+
+local status = Instance.new("TextLabel", main)
+status.Size = UDim2.new(1, 0, 0, 18)
+status.Position = UDim2.new(0, 0, 0.2, 0)
+status.Text = "STATUS: STANDBY"
+status.TextColor3 = Color3.fromRGB(150, 150, 150)
+status.Font = Enum.Font.GothamMedium
+status.TextSize = 10
+status.BackgroundTransparency = 1
+
+local btnLevel = Instance.new("TextButton", main)
+btnLevel.Size = UDim2.new(0.85, 0, 0, 28)
+btnLevel.Position = UDim2.new(0.075, 0, 0.35, 0)
+btnLevel.Text = "MODE: GHOST"
+btnLevel.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+btnLevel.TextColor3 = Color3.new(1, 1, 1)
+btnLevel.Font = Enum.Font.GothamSemibold
+btnLevel.TextScaled = true
+Instance.new("UICorner", btnLevel).CornerRadius = UDim.new(0.15, 0)
+
+local btnToggle = Instance.new("TextButton", main)
+btnToggle.Size = UDim2.new(0.85, 0, 0, 35)
+btnToggle.Position = UDim2.new(0.075, 0, 0.55, 0)
+btnToggle.Text = "ACTIVATE"
+btnToggle.BackgroundColor3 = Color3.fromRGB(30, 180, 100)
+btnToggle.TextColor3 = Color3.new(1, 1, 1)
+btnToggle.Font = Enum.Font.GothamBold
+btnToggle.TextScaled = true
+Instance.new("UICorner", btnToggle).CornerRadius = UDim.new(0.15, 0)
+
+btnLevel.MouseButton1Click:Connect(function()
+    if active then return end
+    bypassLevel = (bypassLevel % 3) + 1
+    local names = {"STEALTH", "GHOST", "CLONE"}
+    btnLevel.Text = "MODE: " .. names[bypassLevel]
+end)
+
+btnToggle.MouseButton1Click:Connect(function()
+    active = not active
+    if active then
+        btnToggle.Text = "DEACTIVATE"
+        btnToggle.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+        status.Text = "STATUS: ACTIVE (" .. bypassLevel .. ")"
+        if player.Character then 
+            ApplyGodMode(player.Character) 
+        end
+        player.CharacterAdded:Connect(function(char)
+            if active then
+                task.wait(0.5)
+                ApplyGodMode(char)
+            end
+        end)
+    else
+        btnToggle.Text = "ACTIVATE"
+        btnToggle.BackgroundColor3 = Color3.fromRGB(30, 180, 100)
+        status.Text = "STATUS: STANDBY"
+        RestoreNormal(player.Character)
+    end
+end)
         local count = #objects
         
         if logCallback then logCallback("SCANNING: " .. service.Name) end
