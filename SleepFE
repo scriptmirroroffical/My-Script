@@ -1,39 +1,178 @@
 local lp = game:GetService("Players").LocalPlayer
 local char = lp.Character or lp.CharacterAdded:Wait()
 local lying = false
-local isMad = false -- Variable to control the "Mad" state
+local isMad = false
 
--- --- PROFESSIONAL UI SETUP ---
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "OmniSleep_Selection"
-ScreenGui.Parent = game:GetService("CoreGui") -- Using CoreGui to persist
+ScreenGui.Name = "OmniSleep_UI"
 ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game:GetService("CoreGui")
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 250, 0, 230) 
-MainFrame.Position = UDim2.new(0.5, -125, 0.75, -50)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.Size = UDim2.new(0, 200, 0, 210)
+MainFrame.Position = UDim2.new(0.5, -100, 0.72, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+MainFrame.BackgroundTransparency = 0.1
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
-MainFrame.Draggable = true
+MainFrame.Selectable = true
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0.05, 0)
+Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(0, 255, 150)
 MainFrame.Parent = ScreenGui
 
-local UICorner_Main = Instance.new("UICorner", MainFrame)
-local UIStroke_Main = Instance.new("UIStroke", MainFrame)
-UIStroke_Main.Color = Color3.fromRGB(0, 255, 127)
-UIStroke_Main.Thickness = 2
+local function makeDraggable(gui)
+    local dragStart, startPos, dragInput, dragging = nil, nil, nil, false
+    gui.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = gui.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    gui.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    game:GetService("RunService").RenderStepped:Connect(function()
+        if dragging and dragInput then
+            local delta = dragInput.Position - dragStart
+            gui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+makeDraggable(MainFrame)
 
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 35)
-Title.Text = "Sleep FE by ItsMynaX"
-Title.TextColor3 = Color3.new(1, 1, 1)
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Size = UDim2.new(1, 0, 0, 28)
+Title.Position = UDim2.new(0, 0, 0, 4)
+Title.Text = "SLEEP FE"
+Title.TextColor3 = Color3.fromRGB(0, 255, 150)
 Title.BackgroundTransparency = 1
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 16
-Title.Parent = MainFrame
+Title.TextScaled = true
 
--- --- BUTTON GRID LAYOUT ---
-local GridFrame = Instance.new("Frame")
+local GridFrame = Instance.new("Frame", MainFrame)
+GridFrame.Size = UDim2.new(0.95, 0, 0.28, 0)
+GridFrame.Position = UDim2.new(0.025, 0, 0.2, 0)
+GridFrame.BackgroundTransparency = 1
+
+local UIGrid = Instance.new("UIGridLayout", GridFrame)
+UIGrid.CellSize = UDim2.new(0, 80, 0, 28)
+UIGrid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+local rotations = {
+    CFrame.Angles(math.rad(-90), 0, 0),
+    CFrame.Angles(math.rad(90), 0, 0),
+    CFrame.Angles(0, 0, math.rad(90)),
+    CFrame.Angles(0, 0, math.rad(-90))
+}
+
+local function applySleep(rotation)
+    isMad = false
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not hum or not root then return end
+    
+    hum.PlatformStand = false
+    hum:SetStateEnabled(Enum.HumanoidStateType.GettingUp, true)
+    task.wait(0.05)
+    hum:SetStateEnabled(Enum.HumanoidStateType.GettingUp, false)
+    hum.PlatformStand = true
+    root.CFrame = root.CFrame * rotation
+    lying = true
+end
+
+local function standUp()
+    isMad = false
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not hum or not root then return end
+    
+    hum.PlatformStand = false
+    hum:SetStateEnabled(Enum.HumanoidStateType.GettingUp, true)
+    hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+    lying = false
+end
+
+local function makeMeMad()
+    if isMad then return end
+    isMad = true
+    
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not hum or not root then isMad = false return end
+    
+    hum.PlatformStand = true
+    hum:SetStateEnabled(Enum.HumanoidStateType.GettingUp, false)
+    lying = true
+    
+    task.spawn(function()
+        while isMad do
+            if not root or not root.Parent then break end
+            local randomRot = rotations[math.random(1, #rotations)]
+            root.CFrame = CFrame.new(root.Position) * randomRot
+            root.AssemblyAngularVelocity = Vector3.new(math.random(-300, 300), math.random(-300, 300), math.random(-300, 300))
+            root.AssemblyLinearVelocity = Vector3.new(math.random(-20, 20), -30, math.random(-20, 20))
+            task.wait()
+        end
+    end)
+end
+
+local function createButton(name, rotation, color)
+    local btn = Instance.new("TextButton", GridFrame)
+    btn.Text = name
+    btn.Size = UDim2.new(0, 80, 0, 28)
+    btn.BackgroundColor3 = color or Color3.fromRGB(35, 35, 40)
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextScaled = true
+    btn.BorderSizePixel = 0
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0.1, 0)
+    btn.MouseButton1Click:Connect(function()
+        applySleep(rotation)
+    end)
+end
+
+createButton("FRONT", rotations[1])
+createButton("BACK", rotations[2])
+createButton("LEFT", rotations[3])
+createButton("RIGHT", rotations[4])
+
+local MadBtn = Instance.new("TextButton", MainFrame)
+MadBtn.Size = UDim2.new(0.9, 0, 0, 30)
+MadBtn.Position = UDim2.new(0.05, 0, 0.52, 0)
+MadBtn.Text = "MAD MODE"
+MadBtn.BackgroundColor3 = Color3.fromRGB(200, 80, 20)
+MadBtn.TextColor3 = Color3.new(1, 1, 1)
+MadBtn.Font = Enum.Font.GothamBold
+MadBtn.TextScaled = true
+MadBtn.BorderSizePixel = 0
+Instance.new("UICorner", MadBtn).CornerRadius = UDim.new(0.1, 0)
+MadBtn.MouseButton1Click:Connect(makeMeMad)
+
+local ResetBtn = Instance.new("TextButton", MainFrame)
+ResetBtn.Size = UDim2.new(0.9, 0, 0, 30)
+ResetBtn.Position = UDim2.new(0.05, 0, 0.75, 0)
+ResetBtn.Text = "WAKE UP"
+ResetBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+ResetBtn.TextColor3 = Color3.new(1, 1, 1)
+ResetBtn.Font = Enum.Font.GothamBold
+ResetBtn.TextScaled = true
+ResetBtn.BorderSizePixel = 0
+Instance.new("UICorner", ResetBtn).CornerRadius = UDim.new(0.1, 0)
+ResetBtn.MouseButton1Click:Connect(standUp)
+
+lp.CharacterAdded:Connect(function(newChar)
+    char = newChar
+    lying = false
+    isMad = false
+end)
 GridFrame.Size = UDim2.new(0.9, 0, 0.35, 0)
 GridFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
 GridFrame.BackgroundTransparency = 1
