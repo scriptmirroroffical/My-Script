@@ -1,299 +1,223 @@
--- [[ STATS CONTROLLER V7.5 - THE STABLE EDITION ]]
 local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
-local function makeDraggable(guiObject)
-    -- Đảm bảo đây là UI
-    if not guiObject:IsA("GuiObject") then
-        warn("makeDraggable chỉ hoạt động với GuiObject!")
-        return
+for _, oldGui in ipairs(playerGui:GetChildren()) do
+    if oldGui.Name == "StatsController" then
+        oldGui:Destroy()
     end
+end
 
-    local isDragging = false
+local function makeDraggable(gui)
+    local dragging = false
     local dragInput = nil
     local dragStart = nil
     local startPos = nil
-
-    local connections = {}
-
-    -- Hàm xử lý logic di chuyển
-    local function update(input)
-        local delta = input.Position - dragStart
-        
-        -- Cập nhật trực tiếp vào Offset để đảm bảo tốc độ phản hồi nhanh nhất (Anti-lag)
-        guiObject.Position = UDim2.new(
-            startPos.X.Scale,
-            startPos.X.Offset + delta.X,
-            startPos.Y.Scale,
-            startPos.Y.Offset + delta.Y
-        )
-    end
-
-    -- 1. Khi người dùng bấm/chạm vào UI
-    table.insert(connections, guiObject.InputBegan:Connect(function(input)
+   
+    gui.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            isDragging = true
+            dragging = true
             dragStart = input.Position
-            startPos = guiObject.Position
-
-            -- Ngắt trạng thái kéo nếu thả tay/chuột ra (kể cả khi thả ngoài màn hình)
-            local releaseConn
-            releaseConn = input.Changed:Connect(function()
+            startPos = gui.Position
+            input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
-                    isDragging = false
-                    releaseConn:Disconnect()
+                    dragging = false
                 end
             end)
         end
-    end))
-
-    -- 2. Ghi nhận loại input đang được sử dụng để di chuyển
-    table.insert(connections, guiObject.InputChanged:Connect(function(input)
+    end)
+   
+    gui.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
             dragInput = input
         end
-    end))
-
-    -- 3. Cập nhật vị trí thông qua UserInputService (Chống lag & chống tuột chuột)
-    table.insert(connections, UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and isDragging then
-            update(input)
+    end)
+   
+    RunService.RenderStepped:Connect(function()
+        if dragging and dragInput then
+            local delta = dragInput.Position - dragStart
+            gui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
-    end))
-
-    -- Trả về một hàm dọn dẹp để gọi khi bạn muốn xóa tính năng kéo thả hoặc hủy UI
-    return function()
-        for _, conn in ipairs(connections) do
-            conn:Disconnect()
-        end
-        table.clear(connections)
-    end
+    end)
 end
 
--- 1. XÓA CÁC BẢN CŨ ĐỂ TRÁNH TRÀN GUI
-for _, oldGui in ipairs(playerGui:GetChildren()) do
-	if oldGui.Name == "StatsController_V7" or oldGui:FindFirstChild("MainFrame") then
-		oldGui:Destroy()
-	end
-end
-
---Scale automatic
-
-local camera = workspace.CurrentCamera
-local screenSize = camera.ViewportSize
-
-local offsetWidth = 300
-local offsetHeight = 420
-
-local scaleX = offsetWidth / screenSize.X
-local scaleY = offsetHeight / screenSize.Y
-
--- 2. LOADING SCREEN (Tối ưu hóa)
-local loadGui = Instance.new("ScreenGui")
-loadGui.Name = "LoadingUI_Final"
-loadGui.DisplayOrder = 10
-loadGui.Parent = playerGui
-
-local bg = Instance.new("Frame")
-bg.Size = UDim2.new(1, 0, 1, 0)
-bg.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-bg.BackgroundTransparency = 0.2
-bg.Parent = loadGui
-
-local loadMain = Instance.new("Frame")
-loadMain.Size = UDim2.new(0, 300, 0, 100)
-loadMain.Position = UDim2.new(0.5, -150, 0.5, -50)
-loadMain.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Instance.new("UICorner", loadMain).CornerRadius = UDim.new(0, 10)
-loadMain.Parent = bg
-
-local loadText = Instance.new("TextLabel")
-loadText.Size = UDim2.new(1, 0, 0.5, 0)
-loadText.Text = "⚡ Optimizing GUI V7.5..."
-loadText.TextColor3 = Color3.new(1,1,1)
-loadText.Font = Enum.Font.GothamBold
-loadText.BackgroundTransparency = 1
-loadText.TextSize = 18
-loadText.Parent = loadMain
-
-local barBg = Instance.new("Frame")
-barBg.Size = UDim2.new(0.8, 0, 0.1, 0)
-barBg.Position = UDim2.new(0.1, 0, 0.7, 0)
-barBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-barBg.Parent = loadMain
-
-local barFill = Instance.new("Frame")
-barFill.Size = UDim2.new(0, 0, 1, 0)
-barFill.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-barFill.Parent = barBg
-
-task.spawn(function()
-	TweenService:Create(barFill, TweenInfo.new(1.5), {Size = UDim2.new(1, 0, 1, 0)}):Play()
-	task.wait(1.6)
-	loadGui:Destroy()
-end)
-
--- 3. MAIN GUI SETUP
 local stats = {
-	speed = 16, jump = 50, health = 100, flySpeed = 50,
-	autoMaintain = true, flying = false, noClip = false, spamSteal = false 
+    speed = 16,
+    jump = 50,
+    health = 100
 }
 
 local mainGui = Instance.new("ScreenGui")
-mainGui.Name = "StatsController_V7_5"
+mainGui.Name = "StatsController"
 mainGui.ResetOnSpawn = false
 mainGui.Parent = playerGui
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Name = "MainFrame"
-mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+mainFrame.Size = UDim2.new(0, 220, 0, 300)
+mainFrame.Position = UDim2.new(0.5, -110, 0.3, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+mainFrame.BackgroundTransparency = 0.1
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
-Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0.05, 0)
+Instance.new("UIStroke", mainFrame).Color = Color3.fromRGB(0, 200, 255)
 mainFrame.Parent = mainGui
-mainFrame.Size = UDim2.new(scaleX, 0, scaleY, 0)
 makeDraggable(mainFrame)
 
--- Thanh tiêu đề (Dùng để kéo)
-local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 40)
-titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 10)
-titleBar.Parent = mainFrame
+local titleBar = Instance.new("Frame", mainFrame)
+titleBar.Size = UDim2.new(1, 0, 0, 35)
+titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0.05, 0)
+Instance.new("UIStroke", titleBar).Color = Color3.fromRGB(0, 200, 255)
+titleBar.ClipsDescendants = true
 
-local titleText = Instance.new("TextLabel")
-titleText.Size = UDim2.new(0.9, 0, 1, 0)
-titleText.Position = UDim2.new(0.05, 0, 0, 0)
-titleText.Text = "STATS CONTROLLER V7.5"
-titleText.TextColor3 = Color3.new(1, 1, 1)
+local titleText = Instance.new("TextLabel", titleBar)
+titleText.Size = UDim2.new(0.7, 0, 1, 0)
+titleText.Position = UDim2.new(0, 10, 0, 0)
+titleText.Text = "STATS CONTROLLER"
+titleText.TextColor3 = Color3.fromRGB(0, 200, 255)
 titleText.Font = Enum.Font.GothamBold
+titleText.TextScaled = true
 titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.BackgroundTransparency = 1
-TextScaled = true
-titleText.Parent = titleBar
 
-local textSizeConstraint = Instance.new("UITextSizeConstraint")
-textSizeConstraint.MaxTextSize = 18 
-textSizeConstraint.MinTextSize = 10 
-textSizeConstraint.Parent = titleText
-
--- Scrolling Content (Chống tràn nút)
-local scroll = Instance.new("ScrollingFrame")
-scroll.Size = UDim2.new(1, -10, 1, -50)
-scroll.Position = UDim2.new(0, 5, 0, 45)
-scroll.BackgroundTransparency = 1
-scroll.CanvasSize = UDim2.new(0, 0, 0, 550)
-scroll.ScrollBarThickness = 4
-scroll.Parent = mainFrame
-
-local layout = Instance.new("UIListLayout")
-layout.Padding = UDim.new(0, 8)
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-layout.Parent = scroll
-
--- Nút Thu Nhỏ
-local miniBtn = Instance.new("TextButton")
+local miniBtn = Instance.new("TextButton", titleBar)
 miniBtn.Size = UDim2.new(0, 30, 0, 30)
-miniBtn.Position = UDim2.new(1, -35, 0, 5)
+miniBtn.Position = UDim2.new(1, -35, 0, 2.5)
 miniBtn.Text = "-"
-miniBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+miniBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
 miniBtn.TextColor3 = Color3.new(1, 1, 1)
-Instance.new("UICorner", miniBtn).CornerRadius = UDim.new(0, 5)
-miniBtn.Parent = titleBar
+miniBtn.Font = Enum.Font.GothamBold
+miniBtn.TextScaled = true
+Instance.new("UICorner", miniBtn).CornerRadius = UDim.new(0.1, 0)
+miniBtn.ZIndex = 10
 
 local isMini = false
+local scroll = Instance.new("ScrollingFrame", mainFrame)
+scroll.Size = UDim2.new(1, -10, 1, -45)
+scroll.Position = UDim2.new(0, 5, 0, 40)
+scroll.BackgroundTransparency = 1
+scroll.CanvasSize = UDim2.new(0, 0, 0, 300)
+scroll.ScrollBarThickness = 3
+scroll.ScrollBarImageColor3 = Color3.fromRGB(0, 200, 255)
+
+local layout = Instance.new("UIListLayout", scroll)
+layout.Padding = UDim.new(0, 6)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
 miniBtn.MouseButton1Click:Connect(function()
     isMini = not isMini
-    mainFrame:TweenSize(isMini and UDim2.new(0, 300, 0, 40) or UDim2.new(0, 300, 0, 420), "Out", "Quad", 0.3, true)
-    scroll.Visible = not isMini
-    miniBtn.Text = isMini and "+" or "-"
+    if isMini then
+        mainFrame:TweenSize(UDim2.new(0, 220, 0, 40), "Out", "Quad", 0.25, true)
+        scroll.Visible = false
+        miniBtn.Text = "+"
+    else
+        mainFrame:TweenSize(UDim2.new(0, 220, 0, 300), "Out", "Quad", 0.25, true)
+        scroll.Visible = true
+        miniBtn.Text = "-"
+    end
 end)
 
--- HÀM TẠO INPUT
 local function addInput(text, key, default)
-    local container = Instance.new("Frame")
-    container.Size = UDim2.new(0.95, 0, 0, 45)
+    local container = Instance.new("Frame", scroll)
+    container.Size = UDim2.new(0.95, 0, 0, 55)
     container.BackgroundTransparency = 1
-    container.Parent = scroll
-
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(0.5, 0, 1, 0)
+   
+    local lbl = Instance.new("TextLabel", container)
+    lbl.Size = UDim2.new(1, 0, 0.4, 0)
     lbl.Text = text
-    lbl.TextSize = 15
-    lbl.TextColor3 = Color3.fromRGB(180, 180, 180)
-    lbl.Font = Enum.Font.Gotham
-    lbl.BackgroundTransparency = 1
+    lbl.TextColor3 = Color3.fromRGB(200, 200, 200)
+    lbl.Font = Enum.Font.GothamMedium
+    lbl.TextScaled = true
     lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.Parent = container
-
-    local box = Instance.new("TextBox")
-    box.Size = UDim2.new(0.4, 0, 0.7, 0)
-    box.Position = UDim2.new(0.55, 0, 0.15, 0)
-    box.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    lbl.BackgroundTransparency = 1
+   
+    local box = Instance.new("TextBox", container)
+    box.Size = UDim2.new(0.5, 0, 0.35, 0)
+    box.Position = UDim2.new(0, 0, 0.4, 0)
+    box.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
     box.Text = tostring(default)
     box.TextColor3 = Color3.new(1, 1, 1)
-    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 5)
-    box.Parent = container
-
+    box.Font = Enum.Font.GothamBold
+    box.TextScaled = true
+    Instance.new("UICorner", box).CornerRadius = UDim.new(0.1, 0)
+   
+    local applyBtn = Instance.new("TextButton", container)
+    applyBtn.Size = UDim2.new(0.4, 0, 0.35, 0)
+    applyBtn.Position = UDim2.new(0.55, 0, 0.4, 0)
+    applyBtn.Text = "APPLY"
+    applyBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
+    applyBtn.TextColor3 = Color3.new(1, 1, 1)
+    applyBtn.Font = Enum.Font.GothamBold
+    applyBtn.TextScaled = true
+    Instance.new("UICorner", applyBtn).CornerRadius = UDim.new(0.1, 0)
+   
+    applyBtn.MouseButton1Click:Connect(function()
+        local n = tonumber(box.Text)
+        if n then
+            stats[key] = n
+            local char = player.Character
+            local hum = char and char:FindFirstChild("Humanoid")
+            if hum then
+                if key == "speed" then
+                    hum.WalkSpeed = n
+                elseif key == "jump" then
+                    hum.JumpPower = n
+                elseif key == "health" then
+                    hum.Health = math.min(n, hum.MaxHealth)
+                end
+            end
+        else
+            box.Text = tostring(stats[key])
+        end
+    end)
+   
     box.FocusLost:Connect(function()
         local n = tonumber(box.Text)
-        if n then stats[key] = n else box.Text = tostring(stats[key]) end
+        if n then
+            stats[key] = n
+        else
+            box.Text = tostring(stats[key])
+        end
     end)
 end
 
 addInput("Speed", "speed", 16)
 addInput("Jump Power", "jump", 50)
 addInput("Health Goal", "health", 100)
-addInput("Fly Speed", "flySpeed", 50)
 
--- HÀM TẠO TOGGLE
-local function addToggle(text, key, color)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.95, 0, 0, 40)
-    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    btn.Text = text .. ": OFF"
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.Font = Enum.Font.GothamBold
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
-    btn.Parent = scroll
+local healBtn = Instance.new("TextButton", scroll)
+healBtn.Size = UDim2.new(0.8, 0, 0, 35)
+healBtn.Text = "HEAL TO GOAL"
+healBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+healBtn.TextColor3 = Color3.new(1, 1, 1)
+healBtn.Font = Enum.Font.GothamBold
+healBtn.TextScaled = true
+Instance.new("UICorner", healBtn).CornerRadius = UDim.new(0.1, 0)
 
-    local function refresh()
-        btn.Text = text .. ": " .. (stats[key] and "ON" or "OFF")
-        btn.BackgroundColor3 = stats[key] and color or Color3.fromRGB(40, 40, 40)
+healBtn.MouseButton1Click:Connect(function()
+    local char = player.Character
+    local hum = char and char:FindFirstChild("Humanoid")
+    if hum then
+        hum.Health = math.min(stats.health, hum.MaxHealth)
     end
+end)
 
-    btn.MouseButton1Click:Connect(function()
-        stats[key] = not stats[key]
-        refresh()
-        
-        -- Fly Setup
-        if key == "flying" then
-            local char = player.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            local hum = char and char:FindFirstChild("Humanoid")
-            
-            if stats.flying and hrp and hum then
-                -- Tạo BodyVelocity mới nếu chưa có
-                local bv = hrp:FindFirstChild("FlyVel") or Instance.new("BodyVelocity")
-                bv.Name = "FlyVel"
-                bv.MaxForce = Vector3.new(1, 1, 1) * math.huge
-                bv.Velocity = Vector3.new(0, 0.1, 0)
-                bv.Parent = hrp
-                
-                -- Tạo BodyGyro mới nếu chưa có
-                local bg = hrp:FindFirstChild("FlyGyro") or Instance.new("BodyGyro")
-                bg.Name = "FlyGyro"
-                bg.MaxTorque = Vector3.new(1, 1, 1) * math.huge
-                bg.CFrame = workspace.CurrentCamera.CFrame
-                bg.Parent = hrp
-                
+task.spawn(function()
+    while task.wait(0.5) do
+        if player.Character then
+            local hum = player.Character:FindFirstChild("Humanoid")
+            if hum and hum.Health > 0 and hum.Health < stats.health then
+                hum.Health = math.min(hum.Health + 5, stats.health)
+            end
+        end
+    end
+end)
+    
                 hum.PlatformStand = true
             else
                 -- Dọn dẹp khi tắt
