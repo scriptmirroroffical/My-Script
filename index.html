@@ -61,9 +61,13 @@
             color: #ffaa00;
             font-weight: bold;
         }
+        .info-area {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #aaa;
+        }
         .error-msg {
             color: #ff5555;
-            margin-top: 20px;
         }
     </style>
 </head>
@@ -79,23 +83,24 @@
         <p>→ Redirecting to <a href="https://github.com/scriptmirroroffical/" target="_blank">https://github.com/scriptmirroroffical/</a></p>
     </div>
 
-    <!-- Form để gửi POST (mô phỏng) -->
+    <!-- Form POST -->
     <form id="postForm" method="POST" action="#">
         <p>▼ Nhấn nút để mô phỏng yêu cầu POST ▼</p>
         <button type="submit" class="btn">📡 Gửi POST (hiển thị banner)</button>
     </form>
 
-    <div id="infoArea" style="margin-top:20px; font-size:12px; color:#aaa;">
-        GET → tự động chuyển hướng đến raw script (hoặc Error404.lua) dựa trên tên file trong URL
+    <div id="infoArea" class="info-area">
+        GET → tự động chuyển hướng đến raw script dựa trên tên file trong URL<br>
+        <span style="color:#888;">Ví dụ: ?script=teensscripts.lua hoặc /path/teensscripts.lua</span>
     </div>
     <div class="footer">© 2026 • Script Mirror Official</div>
 </div>
 
 <script>
     (function() {
-        // ----- Hàm lấy tên script từ URL -----
+        // ----- Lấy tên script từ URL -----
         function getScriptName() {
-            // 1. Kiểm tra query parameter ?script=xxx
+            // Query param ?script=xxx
             const params = new URLSearchParams(window.location.search);
             if (params.has('script')) {
                 let name = params.get('script');
@@ -103,53 +108,43 @@
                     return name.trim();
                 }
             }
-            // 2. Kiểm tra pathname, lấy phần sau dấu '/' cuối cùng, ưu tiên file .lua
+            // Pathname: lấy phần cuối cùng
             const path = window.location.pathname;
-            // Tách các phần
             const parts = path.split('/').filter(p => p !== '');
             if (parts.length > 0) {
                 let last = parts[parts.length - 1];
-                // Nếu có extension .lua hoặc .luac (hoặc có thể thêm)
                 if (last.endsWith('.lua') || last.endsWith('.luac')) {
                     return last;
-                } else {
-                    // Nếu không, có thể tìm phần có .lua trong các phần trước đó?
-                    // Đơn giản là trả về chuỗi rỗng
-                    return '';
                 }
             }
             return '';
         }
 
-        // ----- XỬ LÝ GET (trang tải lần đầu) -----
+        // ----- XỬ LÝ GET -----
         const scriptName = getScriptName();
         const baseMain = 'https://raw.githubusercontent.com/scriptmirroroffical/My-Script/refs/heads/Main/';
-        const baseFramework = 'https://raw.githubusercontent.com/scriptmirroroffical/My-Script/refs/heads/Framework/';
 
         async function handleGet() {
             if (!scriptName) {
-                // Nếu không có tên script, hiển thị thông báo hoặc redirect đến error404
-                document.getElementById('infoArea').innerHTML = '<span style="color:#ff5555;">⚠️ Không tìm thấy tên script trong URL. Vui lòng cung cấp ?script=ten.lua hoặc đường dẫn /.../ten.lua</span>';
-                // Có thể redirect đến Error404
-                window.location.href = baseFramework + 'Error404.lua';
+                // Không có tên script -> redirect mặc định đến My-Scripts.github.io/scripts/raw/teensscripts.lua (theo yêu cầu)
+                window.location.href = 'https://raw.githubusercontent.com/scriptmirroroffical/My-Script/refs/heads/Main/teensscripts.lua';
                 return;
             }
             const targetMain = baseMain + scriptName;
-            const target404 = baseFramework + 'Error404.lua';
             try {
                 const response = await fetch(targetMain, { method: 'HEAD' });
                 if (response.ok) {
                     window.location.href = targetMain;
                 } else {
-                    window.location.href = target404;
+                    // Nếu không tìm thấy, redirect mặc định đến teensscripts.lua (theo logic gốc)
+                    window.location.href = baseMain + 'teensscripts.lua';
                 }
             } catch (e) {
-                window.location.href = target404;
+                window.location.href = baseMain + 'teensscripts.lua';
             }
         }
 
-        // Chạy khi trang load (nếu không phải POST simulation)
-        // Ta dùng cờ để tránh chạy lại khi đã xử lý POST
+        // Chỉ chạy nếu không có ?post=1 (POST simulation)
         if (!window.location.search.includes('post=1')) {
             handleGet();
         }
@@ -161,7 +156,6 @@
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             banner.classList.add('show');
-            // Sau 2 giây redirect đến GitHub
             setTimeout(function() {
                 window.location.href = 'https://github.com/scriptmirroroffical/';
             }, 2000);
