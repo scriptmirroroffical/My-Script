@@ -3,173 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Script Mirror Repository</title>
-    <style>
-        body {
-            font-family: 'Courier New', monospace;
-            background: #0d0d0d;
-            color: #00ffcc;
-            text-align: center;
-            padding: 50px;
-            margin: 0;
-        }
-        .container {
-            border: 2px solid #00ffcc;
-            padding: 30px;
-            display: inline-block;
-            background: #1a1a1a;
-            border-radius: 8px;
-            max-width: 700px;
-        }
-        .btn {
-            background: #00ffcc;
-            color: #0d0d0d;
-            border: none;
-            padding: 12px 24px;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 4px;
-            font-size: 16px;
-        }
-        .btn:hover {
-            background: #00ccaa;
-        }
-        a {
-            color: #ffaa00;
-            text-decoration: none;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
-        .footer {
-            margin-top: 20px;
-            font-size: 14px;
-            color: #888;
-        }
-        .banner {
-            background: #2a2a2a;
-            border-left: 4px solid #ffaa00;
-            padding: 15px;
-            margin: 20px 0;
-            text-align: left;
-            display: none;
-        }
-        .banner.show {
-            display: block;
-        }
-        .highlight {
-            color: #ffaa00;
-            font-weight: bold;
-        }
-        .info-area {
-            margin-top: 20px;
-            font-size: 12px;
-            color: #aaa;
-        }
-        .error-msg {
-            color: #ff5555;
-        }
-    </style>
+    <title>GitHub Redirector</title>
 </head>
 <body>
-<div class="container">
-    <h1>⚡ SCRIPT MIRROR OFFICIAL ⚡</h1>
-    <p><span class="highlight">Fastest growing scripts hosting platform with insane features. For exploiters.</span></p>
-    <hr style="border-color: #00ffcc;">
+    <script>
+        (function() {
+            // Cấu hình mapping
+            const BASE_URL = 'https://raw.githubusercontent.com/scriptmirroroffical/My-Script/refs/heads/Main/';
+            const TARGET_HOST = 'My-Scripts.github.io';
+            const TARGET_PATH = '/scripts/raw/';
 
-    <!-- Banner POST -->
-    <div id="postBanner" class="banner">
-        <p><strong>Property of <a href="https://github.com/scriptmirroroffical/" target="_blank">@Scriptmirroroffical</a></strong></p>
-        <p>→ Redirecting to <a href="https://github.com/scriptmirroroffical/" target="_blank">https://github.com/scriptmirroroffical/</a></p>
-    </div>
+            // Lấy URL hiện tại
+            const currentUrl = window.location.href;
+            const urlObj = new URL(currentUrl);
 
-    <!-- Form POST -->
-    <form id="postForm" method="POST" action="#">
-        <p>▼ Nhấn nút để mô phỏng yêu cầu POST ▼</p>
-        <button type="submit" class="btn">📡 Gửi POST (hiển thị banner)</button>
-    </form>
-
-    <div id="infoArea" class="info-area">
-        GET → tự động chuyển hướng đến raw script dựa trên tên file trong URL<br>
-        <span style="color:#888;">Ví dụ: ?script=teensscripts.lua hoặc /path/teensscripts.lua</span>
-    </div>
-    <div class="footer">© 2026 • Script Mirror Official</div>
-</div>
-
-<script>
-    (function() {
-        // ----- Lấy tên script từ URL -----
-        function getScriptName() {
-            // Query param ?script=xxx
-            const params = new URLSearchParams(window.location.search);
-            if (params.has('script')) {
-                let name = params.get('script');
-                if (name && name.trim() !== '') {
-                    return name.trim();
-                }
+            // Kiểm tra host và path
+            if (urlObj.hostname === TARGET_HOST && urlObj.pathname.startsWith(TARGET_PATH)) {
+                // Lấy phần đường dẫn sau /scripts/raw/
+                const relativePath = urlObj.pathname.substring(TARGET_PATH.length);
+                // Loại bỏ tham số query và hash (nếu có)
+                const cleanPath = relativePath.split('?')[0].split('#')[0];
+                // Tạo URL mới
+                const newUrl = BASE_URL + cleanPath;
+                // Thực hiện redirect
+                window.location.replace(newUrl);
+            } else {
+                // Nếu không khớp, hiển thị thông báo hoặc chuyển hướng về trang chủ
+                document.body.innerHTML = '<h1>Invalid repository redirect</h1><p>Chỉ hỗ trợ redirect từ My-Scripts.github.io/scripts/raw/...</p>';
             }
-            // Pathname: lấy phần cuối cùng
-            const path = window.location.pathname;
-            const parts = path.split('/').filter(p => p !== '');
-            if (parts.length > 0) {
-                let last = parts[parts.length - 1];
-                if (last.endsWith('.lua') || last.endsWith('.luac')) {
-                    return last;
-                }
-            }
-            return '';
-        }
-
-        // ----- XỬ LÝ GET -----
-        const scriptName = getScriptName();
-        const baseMain = 'https://raw.githubusercontent.com/scriptmirroroffical/My-Script/refs/heads/Main/';
-
-        async function handleGet() {
-            if (!scriptName) {
-                // Không có tên script -> redirect mặc định đến My-Scripts.github.io/scripts/raw/teensscripts.lua (theo yêu cầu)
-                window.location.href = 'https://raw.githubusercontent.com/scriptmirroroffical/My-Script/refs/heads/Main/teensscripts.lua';
-                return;
-            }
-            const targetMain = baseMain + scriptName;
-            try {
-                const response = await fetch(targetMain, { method: 'HEAD' });
-                if (response.ok) {
-                    window.location.href = targetMain;
-                } else {
-                    // Nếu không tìm thấy, redirect mặc định đến teensscripts.lua (theo logic gốc)
-                    window.location.href = baseMain + 'teensscripts.lua';
-                }
-            } catch (e) {
-                window.location.href = baseMain + 'teensscripts.lua';
-            }
-        }
-
-        // Chỉ chạy nếu không có ?post=1 (POST simulation)
-        if (!window.location.search.includes('post=1')) {
-            handleGet();
-        }
-
-        // ----- XỬ LÝ POST (mô phỏng) -----
-        const form = document.getElementById('postForm');
-        const banner = document.getElementById('postBanner');
-
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            banner.classList.add('show');
-            setTimeout(function() {
-                window.location.href = 'https://github.com/scriptmirroroffical/';
-            }, 2000);
-        });
-
-        // Nếu trang được tải với ?post=1 (mô phỏng POST)
-        if (window.location.search.includes('post=1')) {
-            banner.classList.add('show');
-            setTimeout(function() {
-                window.location.href = 'https://github.com/scriptmirroroffical/';
-            }, 2000);
-        }
-
-    })();
-</script>
+        })();
+    </script>
 </body>
 </html>
