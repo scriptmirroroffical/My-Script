@@ -3,35 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub Redirector</title>
-</head>
-<body>
+    <title>GitHub Repository Redirector</title>
     <script>
         (function() {
-            // Cấu hình mapping
-            const BASE_URL = 'https://raw.githubusercontent.com/scriptmirroroffical/My-Script/refs/heads/Main/';
-            const TARGET_HOST = 'My-Scripts.github.io';
-            const TARGET_PATH = '/scripts/raw/';
+            // Cấu hình ánh xạ: đường dẫn gốc -> repository và nhánh tương ứng
+            const REPO_MAP = {
+                // Mặc định: nếu không khớp với bất kỳ ánh xạ nào, dùng giá trị này
+                default: {
+                    owner: 'scriptmirroroffical',
+                    repo: 'My-Script',
+                    branch: 'Main'
+                },
+                // Có thể thêm nhiều ánh xạ khác nếu cần
+                // 'project-a': { owner: 'user', repo: 'RepoA', branch: 'master' },
+                // 'project-b': { owner: 'user', repo: 'RepoB', branch: 'dev' }
+            };
 
-            // Lấy URL hiện tại
-            const currentUrl = window.location.href;
-            const urlObj = new URL(currentUrl);
+            // Lấy đường dẫn từ URL (phần sau hostname và optional prefix)
+            var path = window.location.pathname; // ví dụ: /My-Script/script.lua
+            // Loại bỏ dấu '/' đầu và cuối để xử lý
+            var cleanPath = path.replace(/^\/+|\/+$/g, '');
+            var parts = cleanPath.split('/');
+            var repoKey = parts[0] || ''; // phần tử đầu tiên là tên repo hoặc key
+            var relativeFile = parts.slice(1).join('/'); // phần còn lại là đường dẫn file
 
-            // Kiểm tra host và path
-            if (urlObj.hostname === TARGET_HOST && urlObj.pathname.startsWith(TARGET_PATH)) {
-                // Lấy phần đường dẫn sau /scripts/raw/
-                const relativePath = urlObj.pathname.substring(TARGET_PATH.length);
-                // Loại bỏ tham số query và hash (nếu có)
-                const cleanPath = relativePath.split('?')[0].split('#')[0];
-                // Tạo URL mới
-                const newUrl = BASE_URL + cleanPath;
-                // Thực hiện redirect
-                window.location.replace(newUrl);
-            } else {
-                // Nếu không khớp, hiển thị thông báo hoặc chuyển hướng về trang chủ
-                document.body.innerHTML = '<h1>Invalid repository redirect</h1><p>Chỉ hỗ trợ redirect từ My-Scripts.github.io/scripts/raw/...</p>';
+            // Nếu không có file chỉ định -> chuyển về root của repo
+            if (!relativeFile) {
+                // Chuyển đến trang chủ của repo trên GitHub
+                var map = REPO_MAP[repoKey] || REPO_MAP['default'];
+                window.location.href = 'https://github.com/' + map.owner + '/' + map.repo;
+                return;
             }
+
+            // Xác định ánh xạ dựa trên key (repoKey)
+            var map = REPO_MAP[repoKey] || REPO_MAP['default'];
+
+            // Tạo URL raw GitHub
+            var rawUrl = 'https://raw.githubusercontent.com/' + 
+                         map.owner + '/' + 
+                         map.repo + '/refs/heads/' + 
+                         map.branch + '/' + 
+                         relativeFile;
+
+            // Chuyển hướng
+            window.location.href = rawUrl;
         })();
     </script>
+</head>
+<body>
+    <!-- Không cần nội dung hiển thị, tự động chuyển hướng -->
 </body>
 </html>
