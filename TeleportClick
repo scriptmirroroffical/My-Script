@@ -1,0 +1,17 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+local Tool = Instance.new("Tool")
+Tool.Name = "TeleportClick"
+Tool.RequiresHandle = false
+Tool.Activated:Connect(function()
+    local Character = LocalPlayer.Character
+    if not Character then return end
+    local RootPart = Character:FindFirstChild("HumanoidRootPart")
+    if not RootPart then return end
+    local Hit = Mouse.Hit
+    if not Hit then return end
+    local newPos = Hit.Position + Vector3.new(0, 2.5, 0)
+    RootPart.CFrame = CFrame.new(newPos)
+end)
+Tool.Parent = LocalPlayer.Backpack
