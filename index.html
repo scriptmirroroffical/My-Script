@@ -1,56 +1,183 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub Repository Redirector</title>
-    <script>
-        (function() {
-            // Cấu hình ánh xạ: đường dẫn gốc -> repository và nhánh tương ứng
-            const REPO_MAP = {
-                // Mặc định: nếu không khớp với bất kỳ ánh xạ nào, dùng giá trị này
-                default: {
-                    owner: 'scriptmirroroffical',
-                    repo: 'My-Script',
-                    branch: 'Main'
-                },
-                // Có thể thêm nhiều ánh xạ khác nếu cần
-                // 'project-a': { owner: 'user', repo: 'RepoA', branch: 'master' },
-                // 'project-b': { owner: 'user', repo: 'RepoB', branch: 'dev' }
-            };
-
-            // Lấy đường dẫn từ URL (phần sau hostname và optional prefix)
-            var path = window.location.pathname; // ví dụ: /My-Script/script.lua
-            // Loại bỏ dấu '/' đầu và cuối để xử lý
-            var cleanPath = path.replace(/^\/+|\/+$/g, '');
-            var parts = cleanPath.split('/');
-            var repoKey = parts[0] || ''; // phần tử đầu tiên là tên repo hoặc key
-            var relativeFile = parts.slice(1).join('/'); // phần còn lại là đường dẫn file
-
-            // Nếu không có file chỉ định -> chuyển về root của repo
-            if (!relativeFile) {
-                // Chuyển đến trang chủ của repo trên GitHub
-                var map = REPO_MAP[repoKey] || REPO_MAP['default'];
-                window.location.href = 'https://github.com/' + map.owner + '/' + map.repo;
-                return;
-            }
-
-            // Xác định ánh xạ dựa trên key (repoKey)
-            var map = REPO_MAP[repoKey] || REPO_MAP['default'];
-
-            // Tạo URL raw GitHub
-            var rawUrl = 'https://raw.githubusercontent.com/' + 
-                         map.owner + '/' + 
-                         map.repo + '/refs/heads/' + 
-                         map.branch + '/' + 
-                         relativeFile;
-
-            // Chuyển hướng
-            window.location.href = rawUrl;
-        })();
-    </script>
+    <title>GitHub Raw Redirect</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0d1117;
+            color: #c9d1d9;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            flex-direction: column;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            background: #161b22;
+            max-width: 700px;
+            width: 90%;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        .header {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #58a6ff;
+            letter-spacing: 2px;
+            margin-bottom: 0.5rem;
+            border-bottom: 2px solid #30363d;
+            padding-bottom: 0.5rem;
+        }
+        .subheader {
+            font-size: 1rem;
+            color: #8b949e;
+            margin-bottom: 2rem;
+        }
+        .box {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            text-align: left;
+            font-size: 0.9rem;
+            line-height: 1.8;
+            color: #c9d1d9;
+            overflow: auto;
+        }
+        .box .label { color: #58a6ff; }
+        .box .value { color: #f0883e; }
+        .box .arrow { color: #3fb950; }
+        .progress-container {
+            width: 100%;
+            background: #0d1117;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            height: 24px;
+            margin: 1.5rem 0 0.5rem 0;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #238636, #2ea043);
+            border-radius: 6px;
+            transition: width 0.15s linear;
+        }
+        .progress-text {
+            font-size: 0.85rem;
+            color: #8b949e;
+            margin-top: 0.3rem;
+        }
+        .footer {
+            margin-top: 1.5rem;
+            font-size: 0.75rem;
+            color: #484f58;
+            letter-spacing: 1px;
+        }
+        .blink {
+            animation: blink 1.2s step-end infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+    </style>
 </head>
 <body>
-    <!-- Không cần nội dung hiển thị, tự động chuyển hướng -->
+    <div class="container">
+        <div class="header">╔ GITHUB RAW REDIRECTOR ╗</div>
+        <div class="subheader">redirecting to raw.githubusercontent.com</div>
+
+        <div class="box">
+            <div><span class="label">REPO</span>  <span class="arrow">→</span>  <span class="value">scriptmirroroffical/My-Script</span></div>
+            <div><span class="label">BRANCH</span>  <span class="arrow">→</span>  <span class="value">Main</span></div>
+            <div><span class="label">REQUEST</span>  <span class="arrow">→</span>  <span class="value" id="request-path">/</span></div>
+            <div style="margin-top: 0.5rem; border-top: 1px solid #21262d; padding-top: 0.5rem;">
+                <span class="label">TARGET</span>  <span class="arrow">→</span>  <span class="value" id="target-url" style="word-break: break-all; font-size: 0.8rem;">https://raw.githubusercontent.com/...</span>
+            </div>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        <div class="progress-text"><span id="progress-label">INITIALIZING</span> <span class="blink">▌</span></div>
+
+        <div class="footer">[ PALOFSC ] · REDIRECT ENGINE v1.0</div>
+    </div>
+
+    <script>
+        (function() {
+            const OWNER = 'scriptmirroroffical';
+            const REPO = 'My-Script';
+            const BRANCH = 'Main';
+            const BASE_RAW = `https://raw.githubusercontent.com/${OWNER}/${REPO}/refs/heads/${BRANCH}/`;
+
+            let path = window.location.pathname;
+            const repoPrefix = '/' + REPO;
+
+            if (path.startsWith(repoPrefix + '/')) {
+                path = path.substring(repoPrefix.length);
+            } else if (path === repoPrefix) {
+                path = '/';
+            }
+
+            if (path === '' || path === '/') {
+                path = '';
+            }
+
+            const relativePath = path.replace(/^\//, '');
+            const target = BASE_RAW + relativePath + window.location.search + window.location.hash;
+
+            document.getElementById('request-path').textContent = relativePath || '(root)';
+            document.getElementById('target-url').textContent = target;
+
+            const progressBar = document.getElementById('progress-bar');
+            const progressLabel = document.getElementById('progress-label');
+            let progress = 0;
+            const steps = ['RESOLVING', 'CONNECTING', 'REWRITING', 'REDIRECTING'];
+            let stepIndex = 0;
+
+            const interval = setInterval(() => {
+                progress += 2;
+                if (progress > 100) progress = 100;
+                progressBar.style.width = progress + '%';
+
+                if (progress >= 25 && stepIndex < 1) { stepIndex = 1; progressLabel.textContent = steps[1]; }
+                if (progress >= 50 && stepIndex < 2) { stepIndex = 2; progressLabel.textContent = steps[2]; }
+                if (progress >= 75 && stepIndex < 3) { stepIndex = 3; progressLabel.textContent = steps[3]; }
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    progressLabel.textContent = 'COMPLETE';
+                    setTimeout(() => {
+                        window.location.replace(target);
+                    }, 300);
+                }
+            }, 50);
+
+            setTimeout(() => {
+                if (progress < 100) {
+                    clearInterval(interval);
+                    progressBar.style.width = '100%';
+                    progressLabel.textContent = 'FORCE REDIRECT';
+                    setTimeout(() => {
+                        window.location.replace(target);
+                    }, 200);
+                }
+            }, 5000);
+        })();
+    </script>
+
+    <noscript>
+        <meta http-equiv="refresh" content="0; url=https://raw.githubusercontent.com/scriptmirroroffical/My-Script/refs/heads/Main/">
+    </noscript>
 </body>
 </html>
