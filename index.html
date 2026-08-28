@@ -56,6 +56,7 @@
         .box .label { color: #58a6ff; }
         .box .value { color: #f0883e; }
         .box .arrow { color: #3fb950; }
+        .box .error { color: #f85149; }
         .progress-container {
             width: 100%;
             background: #0d1117;
@@ -72,10 +73,16 @@
             border-radius: 6px;
             transition: width 0.15s linear;
         }
+        .progress-bar.error {
+            background: linear-gradient(90deg, #da3633, #f85149);
+        }
         .progress-text {
             font-size: 0.85rem;
             color: #8b949e;
             margin-top: 0.3rem;
+        }
+        .progress-text.error {
+            color: #f85149;
         }
         .footer {
             margin-top: 1.5rem;
@@ -90,6 +97,7 @@
             0%, 100% { opacity: 1; }
             50% { opacity: 0; }
         }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
@@ -104,12 +112,15 @@
             <div style="margin-top: 0.5rem; border-top: 1px solid #21262d; padding-top: 0.5rem;">
                 <span class="label">TARGET</span>  <span class="arrow">→</span>  <span class="value" id="target-url" style="word-break: break-all; font-size: 0.8rem;">https://raw.githubusercontent.com/...</span>
             </div>
+            <div id="error-box" class="hidden" style="margin-top: 0.5rem; border-top: 1px solid #21262d; padding-top: 0.5rem;">
+                <span class="label error">ERROR</span>  <span class="arrow">→</span>  <span class="error">No file specified. Redirect blocked.</span>
+            </div>
         </div>
 
         <div class="progress-container">
             <div class="progress-bar" id="progress-bar"></div>
         </div>
-        <div class="progress-text"><span id="progress-label">INITIALIZING</span> <span class="blink">▌</span></div>
+        <div class="progress-text" id="progress-label"><span>INITIALIZING</span> <span class="blink">▌</span></div>
 
         <div class="footer">[ PALOFSC ] · REDIRECT ENGINE v1.0</div>
     </div>
@@ -130,18 +141,27 @@
                 path = '/';
             }
 
-            if (path === '' || path === '/') {
-                path = '';
-            }
-
             const relativePath = path.replace(/^\//, '');
+            const hasFile = relativePath.length > 0;
             const target = BASE_RAW + relativePath + window.location.search + window.location.hash;
 
-            document.getElementById('request-path').textContent = relativePath || '(root)';
+            document.getElementById('request-path').textContent = relativePath || '(empty)';
             document.getElementById('target-url').textContent = target;
 
             const progressBar = document.getElementById('progress-bar');
             const progressLabel = document.getElementById('progress-label');
+            const errorBox = document.getElementById('error-box');
+
+            if (!hasFile) {
+                errorBox.classList.remove('hidden');
+                progressBar.classList.add('error');
+                progressLabel.classList.add('error');
+                progressLabel.innerHTML = 'ERROR: No file specified <span class="blink">▌</span>';
+                progressBar.style.width = '100%';
+                document.querySelector('.subheader').textContent = 'redirect blocked';
+                return;
+            }
+
             let progress = 0;
             const steps = ['RESOLVING', 'CONNECTING', 'REWRITING', 'REDIRECTING'];
             let stepIndex = 0;
@@ -151,12 +171,12 @@
                 if (progress > 100) progress = 100;
                 progressBar.style.width = progress + '%';
 
-                if (progress >= 25 && stepIndex < 1) { stepIndex = 1; progressLabel.textContent = steps[1]; }
-                if (progress >= 50 && stepIndex < 2) { stepIndex = 2; progressLabel.textContent = steps[2]; }
-                if (progress >= 75 && stepIndex < 3) { stepIndex = 3; progressLabel.textContent = steps[3]; }
+                if (progress >= 25 && stepIndex < 1) { stepIndex = 1; progressLabel.innerHTML = steps[1] + ' <span class="blink">▌</span>'; }
+                if (progress >= 50 && stepIndex < 2) { stepIndex = 2; progressLabel.innerHTML = steps[2] + ' <span class="blink">▌</span>'; }
+                if (progress >= 75 && stepIndex < 3) { stepIndex = 3; progressLabel.innerHTML = steps[3] + ' <span class="blink">▌</span>'; }
                 if (progress >= 100) {
                     clearInterval(interval);
-                    progressLabel.textContent = 'COMPLETE';
+                    progressLabel.innerHTML = 'COMPLETE <span class="blink">▌</span>';
                     setTimeout(() => {
                         window.location.replace(target);
                     }, 300);
@@ -167,7 +187,7 @@
                 if (progress < 100) {
                     clearInterval(interval);
                     progressBar.style.width = '100%';
-                    progressLabel.textContent = 'FORCE REDIRECT';
+                    progressLabel.innerHTML = 'FORCE REDIRECT <span class="blink">▌</span>';
                     setTimeout(() => {
                         window.location.replace(target);
                     }, 200);
