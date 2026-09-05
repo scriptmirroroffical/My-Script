@@ -147,7 +147,7 @@ local WARN_THRESHOLD = 500
 local function rebuildTargets()
     table.clear(targets)
     for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and (SelectedPlayer == "Tất cả" or SelectedPlayer == player.Name) then
+        if player ~= LocalPlayer and (SelectedPlayer == "All" or SelectedPlayer == player.Name) then
             table.insert(targets, player)
         end
     end
