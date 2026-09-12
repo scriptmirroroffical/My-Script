@@ -1,53 +1,444 @@
--- ESP Script – Optimized & Fixed
+-- ============================================================
+--  ESP Script – Compact UI + Scrolling Settings
+-- ============================================================
+
 local _STORAGE = _G.OmniStorage or {}
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
--- === GUI Creation ===
+-- ============================================================
+--  SETTINGS TABLE
+-- ============================================================
+local ESP_SETTINGS = {
+    Enabled = false,
+    Mode = "Full",
+    ShowName = true,
+    ShowTeam = true,
+    ShowDistance = true,
+    ShowHighlight = true,
+    FillTransparency = 0.4,
+    OutlineTransparency = 0,
+    TextSize = 11,
+    MaxDistance = 500,
+}
+
+-- ============================================================
+--  MAIN GUI  (compact: 180 x 34 bar)
+-- ============================================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "ESP_UI"
 ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.DisplayOrder = 999
 ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local Frame = Instance.new("Frame")
 Frame.Name = "Frame"
-Frame.Size = UDim2.new(0, 80, 0, 36)
-Frame.Position = UDim2.new(0.42, 0, 0.15, 0)
+Frame.Size = UDim2.new(0, 180, 0, 34)
+Frame.Position = UDim2.new(0.4, 0, 0.15, 0)
 Frame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-Frame.BackgroundTransparency = 0.3
-Frame.Visible = true
+Frame.BackgroundTransparency = 0.15
 Frame.BorderSizePixel = 0
-Instance.new("UICorner", Frame).CornerRadius = UDim.new(0.1, 0)
-Instance.new("UIStroke", Frame).Color = Color3.fromRGB(0, 200, 255)
+Frame.Active = true
 Frame.Parent = ScreenGui
 
+local FrameCorner = Instance.new("UICorner")
+FrameCorner.CornerRadius = UDim.new(0, 6)
+FrameCorner.Parent = Frame
+
+local FrameStroke = Instance.new("UIStroke")
+FrameStroke.Color = Color3.fromRGB(0, 200, 255)
+FrameStroke.Thickness = 1
+FrameStroke.Transparency = 0.25
+FrameStroke.Parent = Frame
+
+-- Toggle button (smaller)
 local ToggleBtn = Instance.new("TextButton")
-ToggleBtn.Name = "Toggle"
-ToggleBtn.Size = UDim2.new(0, 68, 0, 28)
-ToggleBtn.Position = UDim2.new(0.075, 0, 0.11, 0)
+ToggleBtn.Size = UDim2.new(0, 70, 0, 24)
+ToggleBtn.Position = UDim2.new(0, 5, 0.5, 0)
+ToggleBtn.AnchorPoint = Vector2.new(0, 0.5)
 ToggleBtn.Text = "ESP OFF"
 ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
-ToggleBtn.BackgroundTransparency = 0
 ToggleBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
 ToggleBtn.Font = Enum.Font.GothamBold
 ToggleBtn.TextScaled = true
 ToggleBtn.BorderSizePixel = 0
-Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0.15, 0)
+ToggleBtn.AutoButtonColor = false
 ToggleBtn.Parent = Frame
 
--- Store references
-_STORAGE["ScreenGui"] = ScreenGui
-_STORAGE["Frame"] = Frame
-_STORAGE["TextButton"] = ToggleBtn
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(0, 5)
+ToggleCorner.Parent = ToggleBtn
 
--- === Draggable GUI ===
-local function makeDraggable(gui)
+-- Settings gear (smaller)
+local SettingsBtn = Instance.new("TextButton")
+SettingsBtn.Size = UDim2.new(0, 24, 0, 24)
+SettingsBtn.Position = UDim2.new(1, -29, 0.5, 0)
+SettingsBtn.AnchorPoint = Vector2.new(0, 0.5)
+SettingsBtn.Text = "⚙"
+SettingsBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+SettingsBtn.TextColor3 = Color3.fromRGB(0, 200, 255)
+SettingsBtn.Font = Enum.Font.GothamBold
+SettingsBtn.TextSize = 15
+SettingsBtn.BorderSizePixel = 0
+SettingsBtn.AutoButtonColor = false
+SettingsBtn.Parent = Frame
+
+local SettingsCorner = Instance.new("UICorner")
+SettingsCorner.CornerRadius = UDim.new(0, 5)
+SettingsCorner.Parent = SettingsBtn
+
+-- Title label
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Size = UDim2.new(1, -100, 1, 0)
+TitleLabel.Position = UDim2.new(0, 80, 0, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "ESP"
+TitleLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+TitleLabel.Font = Enum.Font.GothamMedium
+TitleLabel.TextSize = 11
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.Parent = Frame
+
+-- ============================================================
+--  SETTINGS PANEL (compact scrolling frame)
+-- ============================================================
+local PANEL_W = 180
+local PANEL_H = 240
+
+local Panel = Instance.new("Frame")
+Panel.Name = "Panel"
+Panel.Size = UDim2.new(0, PANEL_W, 0, 0)
+Panel.Position = UDim2.new(0, 0, 1, 4)
+Panel.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+Panel.BackgroundTransparency = 0.15
+Panel.BorderSizePixel = 0
+Panel.ClipsDescendants = true
+Panel.Visible = false
+Panel.Parent = Frame
+
+local PanelCorner = Instance.new("UICorner")
+PanelCorner.CornerRadius = UDim.new(0, 6)
+PanelCorner.Parent = Panel
+
+local PanelStroke = Instance.new("UIStroke")
+PanelStroke.Color = Color3.fromRGB(0, 200, 255)
+PanelStroke.Thickness = 1
+PanelStroke.Transparency = 0.4
+PanelStroke.Parent = Panel
+
+-- ScrollingFrame (fills the panel)
+local Scroll = Instance.new("ScrollingFrame")
+Scroll.Size = UDim2.new(1, 0, 1, 0)
+Scroll.Position = UDim2.new(0, 0, 0, 0)
+Scroll.BackgroundTransparency = 1
+Scroll.BorderSizePixel = 0
+Scroll.ScrollBarThickness = 4
+Scroll.ScrollBarImageColor3 = Color3.fromRGB(0, 200, 255)
+Scroll.ScrollBarImageTransparency = 0.3
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+Scroll.ScrollingDirection = Enum.ScrollingDirection.Y
+Scroll.Parent = Panel
+
+local ScrollPadding = Instance.new("UIPadding")
+ScrollPadding.PaddingTop = UDim.new(0, 6)
+ScrollPadding.PaddingBottom = UDim.new(0, 6)
+ScrollPadding.PaddingLeft = UDim.new(0, 6)
+ScrollPadding.PaddingRight = UDim.new(0, 8)
+ScrollPadding.Parent = Scroll
+
+local ScrollLayout = Instance.new("UIListLayout")
+ScrollLayout.Padding = UDim.new(0, 3)
+ScrollLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ScrollLayout.Parent = Scroll
+
+-- ============================================================
+--  UI BUILDERS  (compact)
+-- ============================================================
+local function makeSectionLabel(text)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, 0, 0, 14)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = text
+    lbl.TextColor3 = Color3.fromRGB(0, 200, 255)
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 10
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = Scroll
+    return lbl
+end
+
+local function makeToggle(name, getter, setter)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, 0, 0, 20)
+    row.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+    row.BackgroundTransparency = 0.35
+    row.BorderSizePixel = 0
+    row.Parent = Scroll
+
+    local rc = Instance.new("UICorner")
+    rc.CornerRadius = UDim.new(0, 4)
+    rc.Parent = row
+
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, -44, 1, 0)
+    lbl.Position = UDim2.new(0, 6, 0, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = name
+    lbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = 10
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = row
+
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 32, 0, 14)
+    btn.Position = UDim2.new(1, -38, 0.5, 0)
+    btn.AnchorPoint = Vector2.new(0, 0.5)
+    btn.Text = getter() and "ON" or "OFF"
+    btn.BackgroundColor3 = getter()
+        and Color3.fromRGB(0, 180, 90)
+        or Color3.fromRGB(70, 70, 80)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 9
+    btn.BorderSizePixel = 0
+    btn.AutoButtonColor = false
+    btn.Parent = row
+
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 3)
+    c.Parent = btn
+
+    btn.MouseButton1Click:Connect(function()
+        setter(not getter())
+        btn.Text = getter() and "ON" or "OFF"
+        btn.BackgroundColor3 = getter()
+            and Color3.fromRGB(0, 180, 90)
+            or Color3.fromRGB(70, 70, 80)
+    end)
+
+    return row
+end
+
+local function makeSlider(name, minVal, maxVal, getter, setter, isInt)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, 0, 0, 28)
+    row.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+    row.BackgroundTransparency = 0.35
+    row.BorderSizePixel = 0
+    row.Parent = Scroll
+
+    local rc = Instance.new("UICorner")
+    rc.CornerRadius = UDim.new(0, 4)
+    rc.Parent = row
+
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, -12, 0, 12)
+    lbl.Position = UDim2.new(0, 6, 0, 1)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = name .. ": " .. tostring(getter())
+    lbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = 9
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = row
+
+    local bar = Instance.new("TextButton")
+    bar.Size = UDim2.new(1, -12, 0, 8)
+    bar.Position = UDim2.new(0, 6, 0, 17)
+    bar.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    bar.Text = ""
+    bar.BorderSizePixel = 0
+    bar.AutoButtonColor = false
+    bar.Parent = row
+
+    local barCorner = Instance.new("UICorner")
+    barCorner.CornerRadius = UDim.new(1, 0)
+    barCorner.Parent = bar
+
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new(
+        (getter() - minVal) / (maxVal - minVal), 0, 1, 0
+    )
+    fill.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
+    fill.BorderSizePixel = 0
+    fill.Parent = bar
+
+    local fillCorner = Instance.new("UICorner")
+    fillCorner.CornerRadius = UDim.new(1, 0)
+    fillCorner.Parent = fill
+
     local dragging = false
-    local dragInput = nil
-    local dragStart = nil
-    local startPos = nil
+
+    local function updateFromX(x)
+        local rel = math.clamp(
+            (x - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1
+        )
+        local val = minVal + rel * (maxVal - minVal)
+        if isInt then
+            val = math.floor(val + 0.5)
+        else
+            val = math.floor(val * 100 + 0.5) / 100
+        end
+        setter(val)
+        fill.Size = UDim2.new(
+            (val - minVal) / (maxVal - minVal), 0, 1, 0
+        )
+        lbl.Text = name .. ": " .. tostring(val)
+    end
+
+    bar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            updateFromX(input.Position.X)
+        end
+    end)
+
+    bar.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+
+    RunService.RenderStepped:Connect(function()
+        if dragging then
+            local mouse = UserInputService:GetMouseLocation()
+            updateFromX(mouse.X)
+        end
+    end)
+
+    return row
+end
+
+local function makeDropdown(name, options, getter, setter)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, 0, 0, 38)
+    row.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+    row.BackgroundTransparency = 0.35
+    row.BorderSizePixel = 0
+    row.Parent = Scroll
+
+    local rc = Instance.new("UICorner")
+    rc.CornerRadius = UDim.new(0, 4)
+    rc.Parent = row
+
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, -12, 0, 12)
+    lbl.Position = UDim2.new(0, 6, 0, 1)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = name
+    lbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = 9
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = row
+
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -12, 0, 20)
+    btn.Position = UDim2.new(0, 6, 0, 15)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    btn.Text = getter()
+    btn.TextColor3 = Color3.fromRGB(0, 200, 255)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 10
+    btn.BorderSizePixel = 0
+    btn.AutoButtonColor = false
+    btn.Parent = row
+
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, 3)
+    c.Parent = btn
+
+    btn.MouseButton1Click:Connect(function()
+        local idx = table.find(options, getter()) or 1
+        idx = idx % #options + 1
+        setter(options[idx])
+        btn.Text = options[idx]
+    end)
+
+    return row
+end
+
+-- ============================================================
+--  BUILD PANEL CONTENTS
+-- ============================================================
+makeSectionLabel("MODE")
+makeDropdown("Mode", {"Full", "Box", "Name", "Dot", "Chams"},
+    function() return ESP_SETTINGS.Mode end,
+    function(v) ESP_SETTINGS.Mode = v end)
+
+makeSectionLabel("FEATURES")
+makeToggle("Highlight",
+    function() return ESP_SETTINGS.ShowHighlight end,
+    function(v) ESP_SETTINGS.ShowHighlight = v end)
+makeToggle("Name",
+    function() return ESP_SETTINGS.ShowName end,
+    function(v) ESP_SETTINGS.ShowName = v end)
+makeToggle("Team",
+    function() return ESP_SETTINGS.ShowTeam end,
+    function(v) ESP_SETTINGS.ShowTeam = v end)
+makeToggle("Distance",
+    function() return ESP_SETTINGS.ShowDistance end,
+    function(v) ESP_SETTINGS.ShowDistance = v end)
+
+makeSectionLabel("APPEARANCE")
+makeSlider("Fill", 0, 1,
+    function() return ESP_SETTINGS.FillTransparency end,
+    function(v) ESP_SETTINGS.FillTransparency = v end, false)
+makeSlider("Outline", 0, 1,
+    function() return ESP_SETTINGS.OutlineTransparency end,
+    function(v) ESP_SETTINGS.OutlineTransparency = v end, false)
+makeSlider("Text", 8, 20,
+    function() return ESP_SETTINGS.TextSize end,
+    function(v) ESP_SETTINGS.TextSize = v end, true)
+
+makeSectionLabel("RANGE")
+makeSlider("Max Dist (0=∞)", 0, 2000,
+    function() return ESP_SETTINGS.MaxDistance end,
+    function(v) ESP_SETTINGS.MaxDistance = v end, true)
+
+-- ============================================================
+--  OPEN / CLOSE PANEL
+-- ============================================================
+local PanelOpen = false
+SettingsBtn.MouseButton1Click:Connect(function()
+    PanelOpen = not PanelOpen
+    if PanelOpen then
+        Panel.Visible = true
+        Panel:TweenSize(
+            UDim2.new(0, PANEL_W, 0, PANEL_H),
+            Enum.EasingDirection.Out, Enum.EasingStyle.Quad,
+            0.18, true
+        )
+        SettingsBtn.TextColor3 = Color3.fromRGB(0, 255, 100)
+    else
+        Panel:TweenSize(
+            UDim2.new(0, PANEL_W, 0, 0),
+            Enum.EasingDirection.In, Enum.EasingStyle.Quad,
+            0.15, true
+        )
+        task.delay(0.18, function()
+            if not PanelOpen then
+                Panel.Visible = false
+            end
+        end)
+        SettingsBtn.TextColor3 = Color3.fromRGB(0, 200, 255)
+    end
+end)
+
+-- ============================================================
+--  DRAGGABLE  (title + frame, not the buttons)
+-- ============================================================
+local function makeDraggable(gui, handle)
+    local dragging, dragInput, dragStart, startPos = false, nil, nil, nil
+
     local function update(input)
         local delta = input.Position - dragStart
         gui.Position = UDim2.new(
@@ -55,8 +446,10 @@ local function makeDraggable(gui)
             startPos.Y.Scale, startPos.Y.Offset + delta.Y
         )
     end
-    gui.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
             startPos = gui.Position
@@ -67,29 +460,73 @@ local function makeDraggable(gui)
             end)
         end
     end)
-    gui.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+
+    handle.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch then
             dragInput = input
         end
     end)
+
     RunService.RenderStepped:Connect(function()
         if dragging and dragInput then
             update(dragInput)
         end
     end)
 end
-makeDraggable(Frame)
 
--- === ESP Core ===
-local ESP_SETTINGS = {
-    Enabled = false,
-    FillTransparency = 0.4,
-    OutlineTransparency = 0,
-}
+makeDraggable(Frame, TitleLabel)
+
+-- ============================================================
+--  TEXT HELPERS
+-- ============================================================
+local MAX_NAME_LEN = 14
+local MAX_TEAM_LEN = 10
+
+local function truncate(str, maxLen)
+    str = tostring(str or "")
+    if #str <= maxLen then return str end
+    return str:sub(1, maxLen - 1) .. "…"
+end
+
+local function getDisplayTag(player)
+    local display = player.DisplayName or player.Name
+    local username = player.Name
+    if display ~= username then
+        return string.format("%s (@%s)",
+            truncate(display, MAX_NAME_LEN),
+            truncate(username, MAX_NAME_LEN)
+        )
+    end
+    return truncate(display, MAX_NAME_LEN)
+end
+
+-- ============================================================
+--  ESP CORE
+-- ============================================================
+local activeESPs = {}
+
+local function cleanupPlayer(player)
+    local data = activeESPs[player]
+    if not data then return end
+
+    if data.ancestryConn then data.ancestryConn:Disconnect() end
+    if data.highlight and data.highlight.Parent then
+        data.highlight:Destroy()
+    end
+    if data.billboard and data.billboard.Parent then
+        data.billboard:Destroy()
+    end
+
+    activeESPs[player] = nil
+end
 
 local function applyESPToCharacter(player, character)
     if not character or not character:IsA("Model") then return end
-    if character:FindFirstChild("OmniHL") then return end -- already applied
+    cleanupPlayer(player)
+
+    local hrp = character:WaitForChild("HumanoidRootPart", 5)
+    if not hrp then return end
 
     local Highlight = Instance.new("Highlight")
     Highlight.Name = "OmniHL"
@@ -98,85 +535,198 @@ local function applyESPToCharacter(player, character)
     Highlight.OutlineTransparency = ESP_SETTINGS.OutlineTransparency
     Highlight.Adornee = character
     Highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-    Highlight.Enabled = false -- initially off
+    Highlight.Enabled = false
 
     local Billboard = Instance.new("BillboardGui")
     Billboard.Name = "OmniTag"
-    Billboard.Size = UDim2.new(0, 200, 0, 50)
-    Billboard.StudsOffset = Vector3.new(0, 3, 0)
+    Billboard.Size = UDim2.new(0, 140, 0, 34)
+    Billboard.StudsOffset = Vector3.new(0, 2.6, 0)
     Billboard.AlwaysOnTop = true
-    Billboard.Parent = character:WaitForChild("HumanoidRootPart")
     Billboard.Enabled = false
+    Billboard.Parent = hrp
 
     local TextLabel = Instance.new("TextLabel")
     TextLabel.Size = UDim2.new(1, 0, 1, 0)
     TextLabel.BackgroundTransparency = 1
     TextLabel.TextStrokeTransparency = 0
     TextLabel.Font = Enum.Font.SourceSansBold
-    TextLabel.TextSize = 14
+    TextLabel.TextSize = ESP_SETTINGS.TextSize
+    TextLabel.TextScaled = false
+    TextLabel.TextWrapped = false
+    TextLabel.TextTruncate = Enum.TextTruncate.AtEnd
+    TextLabel.Text = ""
     TextLabel.Parent = Billboard
 
-    -- Update loop
-    local connection
-    connection = RunService.RenderStepped:Connect(function()
-        if not character or not character.Parent or not player.Parent then
-            connection:Disconnect()
-            return
-        end
-        local enabled = ESP_SETTINGS.Enabled and player ~= LocalPlayer
-        Highlight.Enabled = enabled
-        Billboard.Enabled = enabled
-        if enabled then
-            local teamColor = player.TeamColor or Color3.fromRGB(255, 255, 255)
-            Highlight.FillColor = teamColor
-            Highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-
-            local hrp = character:FindFirstChild("HumanoidRootPart")
-            local dist = "?"
-            if hrp then
-                local lhrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                if lhrp then
-                    dist = math.floor((lhrp.Position - hrp.Position).Magnitude)
-                end
-            end
-            local teamName = player.Team and player.Team.Name or "No Team"
-            TextLabel.Text = string.format("%s [%s]\n%d studs", player.Name, teamName, dist)
-            TextLabel.TextColor3 = teamColor
-        end
-    end)
-
-    -- Cleanup when character removed
-    character.AncestryChanged:Connect(function()
+    local ancestryConn = character.AncestryChanged:Connect(function()
         if not character.Parent then
-            connection:Disconnect()
+            cleanupPlayer(player)
         end
     end)
+
+    activeESPs[player] = {
+        highlight = Highlight,
+        billboard = Billboard,
+        label = TextLabel,
+        character = character,
+        ancestryConn = ancestryConn,
+    }
 end
 
 local function setupESPForPlayer(player)
     if player == LocalPlayer then return end
+
     if player.Character then
-        applyESPToCharacter(player, player.Character)
+        task.spawn(applyESPToCharacter, player, player.Character)
     end
+
     player.CharacterAdded:Connect(function(character)
-        applyESPToCharacter(player, character)
+        task.spawn(applyESPToCharacter, player, character)
     end)
 end
 
--- Initialize existing players
 for _, p in pairs(Players:GetPlayers()) do
     setupESPForPlayer(p)
 end
 Players.PlayerAdded:Connect(setupESPForPlayer)
+Players.PlayerRemoving:Connect(cleanupPlayer)
 
--- === Toggle Button ===
+-- ============================================================
+--  UPDATE LOOP
+-- ============================================================
+local UPDATE_INTERVAL = 0.1
+local accum = 0
+
+local function getLocalHRP()
+    local char = LocalPlayer.Character
+    return char and char:FindFirstChild("HumanoidRootPart")
+end
+
+local function buildLabelText(player, dist)
+    local parts = {}
+
+    if ESP_SETTINGS.ShowName then
+        table.insert(parts, getDisplayTag(player))
+    end
+
+    if ESP_SETTINGS.ShowTeam then
+        local teamName = truncate(
+            (player.Team and player.Team.Name) or "No Team",
+            MAX_TEAM_LEN
+        )
+        if #parts > 0 then
+            parts[#parts] = parts[#parts] .. " [" .. teamName .. "]"
+        else
+            table.insert(parts, "[" .. teamName .. "]")
+        end
+    end
+
+    local line1 = table.concat(parts, " ")
+
+    if ESP_SETTINGS.ShowDistance and dist ~= "?" then
+        return line1 .. "\n" .. dist .. "s"
+    end
+    return line1
+end
+
+local function updateAllESP()
+    local enabled = ESP_SETTINGS.Enabled
+    local mode = ESP_SETTINGS.Mode
+    local lhrp = getLocalHRP()
+
+    for player, data in pairs(activeESPs) do
+        local char = data.character
+        if not char or not char.Parent then continue end
+
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        local dist = "?"
+        local distNum = math.huge
+
+        if hrp and lhrp then
+            distNum = (lhrp.Position - hrp.Position).Magnitude
+            dist = math.floor(distNum)
+        end
+
+        local withinRange = ESP_SETTINGS.MaxDistance == 0
+            or distNum <= ESP_SETTINGS.MaxDistance
+
+        local show = enabled and withinRange
+
+        local showHL = show
+            and ESP_SETTINGS.ShowHighlight
+            and (mode == "Full" or mode == "Chams" or mode == "Box")
+        local showTag = show
+            and (mode == "Full" or mode == "Name" or mode == "Dot")
+
+        data.highlight.Enabled = showHL
+        data.billboard.Enabled = showTag
+
+        if show then
+            local teamColor = player.TeamColor
+                and player.TeamColor.Color
+                or Color3.fromRGB(255, 255, 255)
+
+            data.highlight.FillColor = teamColor
+            data.highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+            data.highlight.FillTransparency = ESP_SETTINGS.FillTransparency
+            data.highlight.OutlineTransparency = ESP_SETTINGS.OutlineTransparency
+
+            data.label.TextColor3 = teamColor
+            data.label.TextSize = ESP_SETTINGS.TextSize
+            data.label.Text = buildLabelText(player, dist)
+
+            if mode == "Dot" then
+                data.billboard.Size = UDim2.new(0, 6, 0, 6)
+                data.label.Text = ""
+            else
+                data.billboard.Size = UDim2.new(0, 140, 0, 34)
+            end
+        end
+    end
+end
+
+RunService.Heartbeat:Connect(function(dt)
+    accum += dt
+    if accum < UPDATE_INTERVAL then return end
+    accum = 0
+    updateAllESP()
+end)
+
+-- ============================================================
+--  MAIN TOGGLE
+-- ============================================================
 local IsOn = false
 ToggleBtn.MouseButton1Click:Connect(function()
     IsOn = not IsOn
     ESP_SETTINGS.Enabled = IsOn
     ToggleBtn.Text = IsOn and "ESP ON" or "ESP OFF"
-    ToggleBtn.BackgroundColor3 = IsOn and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(0, 255, 255)
+    ToggleBtn.BackgroundColor3 = IsOn
+        and Color3.fromRGB(0, 200, 0)
+        or Color3.fromRGB(0, 255, 255)
+
+    for _, data in pairs(activeESPs) do
+        data.highlight.Enabled = IsOn and ESP_SETTINGS.ShowHighlight
+        data.billboard.Enabled = IsOn
+    end
 end)
 
--- Final storage
+-- ============================================================
+--  KEYBIND
+-- ============================================================
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        ToggleBtn.MouseButton1Click:Fire()
+    end
+end)
+
+-- ============================================================
+--  STORAGE
+-- ============================================================
+_STORAGE["ScreenGui"] = ScreenGui
+_STORAGE["Frame"] = Frame
+_STORAGE["Panel"] = Panel
+_STORAGE["Scroll"] = Scroll
+_STORAGE["ToggleButton"] = ToggleBtn
+_STORAGE["SettingsButton"] = SettingsBtn
+_STORAGE["Settings"] = ESP_SETTINGS
 _G.OmniStorage = _STORAGE
