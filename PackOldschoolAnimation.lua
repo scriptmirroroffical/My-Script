@@ -1,37 +1,37 @@
-
 local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 
-local LOCAL_PLAYER = Players.LocalPlayer
-local ATTR_KEY     = "OldSchool_v6"
-
--- ─── Animation IDs ────────────────────────────────────────
-local A = "rbxassetid://"
 local IDS = {
-    idle1    = A .. "5319828216",
-    idle2    = A .. "5319831086",
-    run      = A .. "5319844329",
-    walk     = A .. "5319847204",
-    jump     = A .. "5319841935",
-    fall     = A .. "5319839762",
-    climb    = A .. "5319816685",
-    swim     = A .. "5319850266",
-    swimidle = A .. "5319852613",
+    idle1    = "rbxassetid://5319828216",
+    idle2    = "rbxassetid://5319831086",
+    run      = "rbxassetid://5319844329",
+    walk     = "rbxassetid://5319847204",
+    jump     = "rbxassetid://5319841935",
+    fall     = "rbxassetid://5319839762",
+    climb    = "rbxassetid://5319816685",
+    swim     = "rbxassetid://5319850266",
+    swimidle = "rbxassetid://5319852613",
 }
 
--- Map: {parent folder, child name, animation id}
-local SLOT_MAP = {
-    { "run",      "RunAnim",    IDS.run      },
-    { "walk",     "WalkAnim",   IDS.walk     },
-    { "jump",     "JumpAnim",   IDS.jump     },
-    { "fall",     "FallAnim",   IDS.fall     },
-    { "climb",    "ClimbAnim",  IDS.climb    },
-    { "swim",     "Swim",       IDS.swim     },
-    { "swimidle", "SwimIdle",   IDS.swimidle },
-    { "idle",     "Animation1", IDS.idle1    },
-    { "idle",     "Animation2", IDS.idle2    },
-}
+local ATTR_LAST = "OldSchoolPack_Applied"
 
--- ─── Helpers ──────────────────────────────────────────────
+local function waitForAnimate(char)
+    for _ = 1, 40 do
+        local a = char:FindFirstChild("Animate")
+        if a and a:FindFirstChild("idle") and a:FindFirstChild("run") and a:FindFirstChild("walk") then
+            return a
+        end
+        task.wait(0.1)
+    end
+    return nil
+end
+
+local function setAnim(obj, id)
+    if obj and id then
+        obj.AnimationId = id
+    end
+end
+
 local function ensureAnim(folder, name)
     if not folder then return nil end
     local a = folder:FindFirstChild(name)
@@ -43,119 +43,83 @@ local function ensureAnim(folder, name)
     return a
 end
 
-local function waitForAnimate(char, timeout)
-    timeout = timeout or 5
-    local t0 = os.clock()
-    while os.clock() - t0 < timeout do
-        local a = char:FindFirstChild("Animate")
-        if a
-            and a:FindFirstChild("idle")
-            and a:FindFirstChild("run")
-            and a:FindFirstChild("walk") then
-            return a
-        end
-        task.wait(0.1)
-    end
-    return nil
-end
-
--- ─── Core patcher ─────────────────────────────────────────
-local function patchAnimate(animate)
-    if not animate then return 0 end
-    local n = 0
-    for _, entry in ipairs(SLOT_MAP) do
-        local parentName, childName, id = entry[1], entry[2], entry[3]
-        local folder = animate:FindFirstChild(parentName)
-        local anim = ensureAnim(folder, childName)
-        if anim and anim.AnimationId ~= id then
-            anim.AnimationId = id
-            n += 1
-        end
-    end
-    return n
-end
-
-local function forceReload(animate, hum)
-    if not animate then return end
-    animate.Disabled = true
-    task.wait(0.05)
-    animate.Disabled = false
-    if hum then
-        pcall(function()
-            hum:ChangeState(Enum.HumanoidStateType.Landed)
-            hum:ChangeState(Enum.HumanoidStateType.Running)
-        end)
+local function ensureIdleSlots(idleFolder, n)
+    if not idleFolder then return end
+    n = n or 2
+    for i = 1, n do
+        ensureAnim(idleFolder, "Animation" .. i)
     end
 end
 
--- ─── Watch Animate để tự heal khi game ghi đè ─────────────
-local function watchAnimate(animate)
-    if not animate or animate:GetAttribute("OS_Watched") then return end
-    animate:SetAttribute("OS_Watched", true)
-
-    -- Nếu folder con bị add/remove, patch lại toàn bộ
-    animate.DescendantAdded:Connect(function(desc)
-        if not LOCAL_PLAYER:GetAttribute(ATTR_KEY) then return end
-        if desc:IsA("Animation") or desc:IsA("Folder") then
-            task.defer(function() patchAnimate(animate) end)
-        end
-    end)
-end
-
--- ─── Apply toàn bộ pipeline ───────────────────────────────
-local function apply(char)
-    char = char or LOCAL_PLAYER.Character
-    if not char then return false end
-
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if not hum then return false end
-
-    local animate = waitForAnimate(char)
-    if not animate then
-        warn("[OldSchool v6] Animate not found")
-        return false
-    end
-
-    -- Stop animation tracks đang chạy
+local function stopAllTracks(hum)
+    if not hum then return end
     for _, t in ipairs(hum:GetPlayingAnimationTracks()) do
         pcall(function() t:Stop(0) end)
     end
+end
 
-    local patched = patchAnimate(animate)
-    forceReload(animate, hum)
-    watchAnimate(animate)
-
-    LOCAL_PLAYER:SetAttribute(ATTR_KEY, true)
-    if patched > 0 then
-        print(("[OldSchool v6] patched %d slots"):format(patched))
+local function applyOldSchool()
+    local char = player.Character or player.CharacterAdded:Wait()
+    local animate = waitForAnimate(char)
+    if not animate then
+        warn("[OldSchool] Animate not found")
+        return false
     end
+
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    stopAllTracks(hum)
+
+    local runObj      = ensureAnim(animate:FindFirstChild("run"),      "RunAnim")
+    local walkObj     = ensureAnim(animate:FindFirstChild("walk"),     "WalkAnim")
+    local jumpObj     = ensureAnim(animate:FindFirstChild("jump"),     "JumpAnim")
+    local fallObj     = ensureAnim(animate:FindFirstChild("fall"),     "FallAnim")
+    local climbObj    = ensureAnim(animate:FindFirstChild("climb"),    "ClimbAnim")
+    local swimObj     = ensureAnim(animate:FindFirstChild("swim"),     "Swim")
+    local swimIdleObj = ensureAnim(animate:FindFirstChild("swimidle"), "SwimIdle")
+    local idleFolder  = animate:FindFirstChild("idle")
+
+    setAnim(runObj,      IDS.run)
+    setAnim(walkObj,     IDS.walk)
+    setAnim(jumpObj,     IDS.jump)
+    setAnim(fallObj,     IDS.fall)
+    setAnim(climbObj,    IDS.climb)
+    setAnim(swimObj,     IDS.swim)
+    setAnim(swimIdleObj, IDS.swimidle)
+
+    if idleFolder then
+        ensureIdleSlots(idleFolder, 2)
+        setAnim(idleFolder:FindFirstChild("Animation1"), IDS.idle1)
+        setAnim(idleFolder:FindFirstChild("Animation2"), IDS.idle2)
+    end
+
+    -- Force reload Animate
+    animate.Disabled = true
+    task.wait(0.06)
+    animate.Disabled = false
+
+    -- Nudge Humanoid state để animation áp dụng ngay
+    if hum then
+        pcall(function()
+            hum:ChangeState(Enum.HumanoidStateType.Landed)
+            task.wait(0.03)
+            hum:ChangeState(Enum.HumanoidStateType.Running)
+        end)
+    end
+
+    pcall(function() player:SetAttribute(ATTR_LAST, true) end)
     return true
 end
 
--- ─── AUTO PATCH ON RESPAWN ────────────────────────────────
--- Bật cờ ngay lập tức để mọi respawn sau đó đều auto apply
-LOCAL_PLAYER:SetAttribute(ATTR_KEY, true)
-
-LOCAL_PLAYER.CharacterAdded:Connect(function(char)
-    -- Chờ Animate load xong rồi patch
-    task.spawn(function()
-        task.wait(0.3)
-        apply(char)
-    end)
+-- Auto reapply sau respawn
+player.CharacterAdded:Connect(function()
+    task.wait(0.6)
+    if player:GetAttribute(ATTR_LAST) then
+        applyOldSchool()
+    end
 end)
 
--- Apply ngay cho nhân vật hiện tại (nếu có)
-if LOCAL_PLAYER.Character then
-    task.spawn(function()
-        task.wait(0.2)
-        apply(LOCAL_PLAYER.Character)
-    end)
-end
-
--- ─── Fallback: nếu CharacterAdded không fire (lần đầu) ────
+-- Auto apply lần đầu
 task.defer(function()
     task.wait(0.5)
-    if LOCAL_PLAYER.Character then
-        apply(LOCAL_PLAYER.Character)
-    end
-end)a
+    applyOldSchool()
+end)
